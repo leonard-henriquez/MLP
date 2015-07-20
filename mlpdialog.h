@@ -2,8 +2,8 @@
 #define MLPDIALOG_H
 
 #include <QMainWindow>
+#include <QFileDialog>
 #include "qmlp.h"
-#include "qcustomplot.h"
 
 namespace Ui {
 class MLPDialog;

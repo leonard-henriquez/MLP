@@ -38,10 +38,11 @@ public:
     };
 
 
-    MLP(int HL = 0, integer PL = 0);
+    MLP(integer HL = 0, integer PL = 0);
     MLP &operator = (const MLP &);
     MLP (const MLP &other);
 
+    bool isSet();
     bool setArchitecture(initialise init = INIT, integer I = 0, integer O = 0);
     void reset(initialise init = INIT, integer HL = 0, integer PL = 0);
     virtual ~MLP();
@@ -51,9 +52,11 @@ public:
     EigenMatrix getInput();
     EigenMatrix getOutput();
     void setLearningExamples(const setOfExamples &set);
-    void setActivationFunction(int i); // 0 sig, 1 tanh
+    void setActivationFunction(integer i); // 0 sig, 1 tanh
 
     STLVector run(const STLVector &input);
+    EigenMatrix run(const integer &exampleIndex = -1, integer layer = -1);
+
     realnumber MQE(const realnumber &lambda0 = 0, const realnumber &lambda1 = 0, const realnumber & lambda2 = 0);
     bool learn(realnumber ME = MAX_ERROR, realnumber MT = MAX_TIME, realnumber LR = LEARNING_RATE, bool ALR = ADAPTATIVELR, realnumber lambda = LAMBDA, realnumber lambda1 = LAMBDA1, realnumber lambda2 = LAMBDA2);
     virtual void displayInfo(const realnumber &lambda, const realnumber &lambda1, const realnumber & lambda2);
@@ -63,7 +66,6 @@ protected:
 
     void clone(const MLP &);
     void clear();
-    EigenMatrix run(const integer &layer, const integer &exampleIndex = -1);
 
     virtual void display(const string & str);
     virtual bool displayMQE(clock_t const &start, realnumber &nextDisplayTime, const realnumber & mqe, const realnumber &learningRate, const realnumber &refreshTime = 1);

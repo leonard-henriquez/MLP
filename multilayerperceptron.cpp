@@ -1,6 +1,6 @@
 #include "multilayerperceptron.h"
 
-MLP::MLP(int HL, integer PL):
+MLP::MLP(integer HL, integer PL):
 m_perLayer(PL),
 m_last(HL+1),
 m_layers(NULL),
@@ -29,7 +29,7 @@ void MLP::clone(const MLP & other)
     reset(NOTINIT);
     if (other.m_layers != NULL)
     {
-        for (int i = 0; i <= m_last; ++i)
+        for (integer i = 0; i <= m_last; ++i)
             m_layers[i] = other.m_layers[i];
     }
 }
@@ -63,9 +63,14 @@ MLP::~MLP()
     clear();
 }
 
+bool MLP::isSet()
+{
+    return !(m_layers == NULL);
+}
+
 bool MLP::setArchitecture(initialise init, integer I, integer O)
 {
-    if (m_layers == NULL)
+    if (!isSet())
     {
         if (m_last > 1 && m_perLayer > 0)
         {
@@ -92,34 +97,34 @@ bool MLP::setArchitecture(initialise init, integer I, integer O)
                 if (init)
                 {
                     m_layers[0]      = EigenMatrix::Random(m_perLayer,I+1);
-                    for(int j = 1; j < m_last ; ++j)
+                    for(integer j = 1; j < m_last ; ++j)
                         m_layers[j] = EigenMatrix::Random(m_perLayer,m_perLayer+1);
                     m_layers[m_last] = EigenMatrix::Random(O,m_perLayer+1);
 
                     // rescale
-                    for(int j = 0; j <= m_last; ++j)
-                        m_layers[j] *= sqrt(6/(I+O));
+                    for(integer j = 0; j <= m_last; ++j)
+                        m_layers[j] *= 0.5;//sqrt(6/(I+O));
 
 
                     // create a backup
-                    for(int j = 0; j < m_last; ++j)
+                    for(integer j = 0; j <= m_last; ++j)
                         m_oldLayers[j] = m_layers[j];
                 }
                 else
                 {
                     m_layers[0].resize(m_perLayer,I+1);
-                    for(int j = 1; j < m_last ; ++j)
+                    for(integer j = 1; j < m_last; ++j)
                         m_layers[j].resize(m_perLayer,m_perLayer+1);
                     m_layers[m_last].resize(O,m_perLayer+1);
 
                     m_oldLayers[0].resize(m_perLayer,I+1);
-                    for(int j = 1; j < m_last ; ++j)
+                    for(integer j = 1; j < m_last; ++j)
                         m_oldLayers[j].resize(m_perLayer,m_perLayer+1);
                     m_oldLayers[m_last].resize(O,m_perLayer+1);
                 }
 
                 m_Delta[0].resize(m_perLayer,1);
-                for(int j = 1; j < m_last ; ++j)
+                for(integer j = 1; j < m_last ; ++j)
                     m_Delta[j].resize(m_perLayer,1);
                 m_Delta[m_last].resize(O,1);
             }
@@ -131,7 +136,7 @@ bool MLP::setArchitecture(initialise init, integer I, integer O)
     }
     else if (m_input.rows()+1 != m_layers[0].cols() || m_output.rows() != m_layers[m_last].rows())
             reset();
-    return (m_layers != NULL);
+    return isSet();
 }
 
 void MLP::reset(initialise init, integer HL, integer PL)
@@ -172,29 +177,13 @@ bool MLP::learn(realnumber ME, realnumber MT, realnumber LR, bool ALR, realnumbe
  * ALR = ADAPTATIVELR (adaptative learning rate)
  */
 
-    if (setArchitecture(INIT))
+    if (isSet())
     {
         integer index, compteur = 0;
         realnumber  nextDisplayTime = 0,
                 newMQE = MQE(lambda, lambda1, lambda2),
                 oldMQE = newMQE;
         clock_t start = clock();
-
-
-//        integer validationPercent = 75, validationNumber = validationPercent/100*m_input.cols(), i;
-//        bool test;
-//        vector<integer> validationSet(validationNumber);
-//        for (integer j = 0; j < validationNumber; ++j)
-//        {
-//            test = 0;
-//            i = rand()%m_input.cols();
-//            for (integer k = 0; k < j ; ++k)
-//                if (validationSet[k] == i)
-//                    test = 1;
-//            if (!test)
-//            validationSet[j] = i;
-//        }
-
 
 
         displayInfo(lambda, lambda1, lambda2);
@@ -210,7 +199,6 @@ bool MLP::learn(realnumber ME, realnumber MT, realnumber LR, bool ALR, realnumbe
             // présente un exemple au hasard pour l'apprendre
 
             index = rand()% m_input.cols(); // ATTENTION! A améliorer
-//            index = validationSet[rand()%validationSet.size()];
 
             saveWeights();
             weightDecay(lambda, lambda1, lambda2);
@@ -235,7 +223,7 @@ bool MLP::learn(realnumber ME, realnumber MT, realnumber LR, bool ALR, realnumbe
 realnumber MLP::weightCost(const realnumber &lambda, const realnumber &lambda1, const realnumber & lambda2)
 {
     realnumber sum = 0;
-    for (int j = m_last; j >= 0; --j)
+    for (integer j = m_last; j >= 0; --j)
     {
         sum += ((j==m_last)? lambda1: lambda) * norm2(m_layers[j].block(0,0, m_layers[j].rows(), m_layers[j].cols()-1));
         sum += lambda2 * norm2(m_layers[j].block(0,m_layers[j].cols()-1, m_layers[j].rows(),1));
@@ -246,8 +234,11 @@ realnumber MLP::weightCost(const realnumber &lambda, const realnumber &lambda1, 
 void MLP::modifyWeights(const integer &exampleIndex, const realnumber &learningRate)
 {
     modifyDelta(m_input.col(exampleIndex), m_output.col(exampleIndex), 0);
-    for (int j = m_last; j >= 0; --j)
-        m_layers[j] += learningRate * m_Delta[j] * addBias(run(j-1, exampleIndex)).transpose();
+    for (integer j = m_last; j >= 0; --j)
+        m_layers[j] +=
+                       learningRate
+                     * m_Delta[j]
+                     * addBias( (j>0) ? run(exampleIndex, j-1) : m_input.col(exampleIndex) ).transpose();
 }
 
 
@@ -257,11 +248,11 @@ EigenVector MLP::modifyDelta(EigenVector const &input, EigenVector const &output
 
     if (layer == m_last)
         m_Delta[layer] =
-                activation(m_layers[layer], yj, m_derivativeActivationFunction).asDiagonal()
+                  activation(m_layers[layer], yj, m_derivativeActivationFunction).asDiagonal()
                 * (output - activation(m_layers[layer], yj, m_activationFunction));
     else
         m_Delta[layer] =
-                activation(m_layers[layer], yj, m_derivativeActivationFunction).asDiagonal()
+                  activation(m_layers[layer], yj, m_derivativeActivationFunction).asDiagonal()
                 * m_layers[layer+1].block(0,0,m_layers[layer+1].rows(), m_layers[layer+1].cols()-1).transpose()
                 * modifyDelta(activation(m_layers[layer], yj, m_activationFunction), output,layer+1);
     return m_Delta[layer];
@@ -286,7 +277,7 @@ void MLP::modifyLearningRate(realnumber &learningRate, bool adaptativeLearningRa
         oldMQE = newMQE;
 }
 
-EigenMatrix MLP::run(const integer &layer, const integer &exampleIndex)
+EigenMatrix MLP::run(const integer &exampleIndex, integer layer)
 // calcule la sortie associée à la matrice "m_input" jusqu'à couche numéro "layer"
 {
     EigenMatrix output;
@@ -295,7 +286,10 @@ EigenMatrix MLP::run(const integer &layer, const integer &exampleIndex)
     else
         output = m_input.col(exampleIndex);
 
-    for(int j = 0; j <= layer; ++j)
+    if (layer < 0)
+        layer = m_last;
+
+    for(integer j = 0; j <= layer; ++j)
         output = activation(m_layers[j], output, m_activationFunction);
     return output;
 }
@@ -306,7 +300,7 @@ STLVector MLP::run(const STLVector &input)
     {
         EigenMatrix saveInput = m_input;
         m_input = (STLToEigenVector(input) - m_mean) / m_sigma;
-        EigenVector output = run(m_last);
+        EigenVector output = run();
         m_input = saveInput;
         return EigenToSTLVector(output);
     }
@@ -318,10 +312,10 @@ realnumber MLP::MQE(const realnumber &lambda, const realnumber &lambda1, const r
 // renvoie l'erreur quadratique moyenne
 {
     if (lambda != 0)
-        return (norm( run(m_last) - m_output ) + weightCost(lambda, lambda1, lambda2))/2;
+        return (norm( run() - m_output ) + weightCost(lambda, lambda1, lambda2))/2;
     else
         // en fait c'est Tr(tE*E)
-        return norm(run(m_last)-m_output)/2;
+        return norm(run()-m_output)/2;
 }
 
 void MLP::setLearningExamples(const setOfExamples &set)
@@ -339,7 +333,7 @@ void MLP::setInput(const EigenMatrix &input, bool skipNormalisation, bool recalc
         if(recalc)
         {
             EigenVector mean(m_input.rows());
-            for(int i = 0; i < m_input.rows(); ++i)
+            for(integer i = 0; i < m_input.rows(); ++i)
                 mean(i) = m_input.row(i).sum()/m_input.cols();
             m_mean = mean * (EigenVector::Ones(m_input.cols())).transpose();
             m_sigma = sqrt(norm(m_input-m_mean));
@@ -355,7 +349,7 @@ void MLP::setOutput(const EigenMatrix &output)
 
 EigenMatrix MLP::getInput()
 {
-    return m_input;
+    return m_input*m_sigma+m_mean;
 }
 
 EigenMatrix MLP::getOutput()
@@ -363,7 +357,7 @@ EigenMatrix MLP::getOutput()
     return m_output;
 }
 
-void MLP::setActivationFunction(int i)
+void MLP::setActivationFunction(integer i)
 {
     string str;
     switch (i)
@@ -385,7 +379,7 @@ void MLP::setActivationFunction(int i)
 void MLP::weightDecay(const realnumber &lambda, const realnumber &lambda1, const realnumber &lambda2)
 {
     integer rows, cols;
-    for (int j = 0; j <= m_last ; ++j)
+    for (integer j = 0; j <= m_last ; ++j)
     {
         rows = m_layers[j].rows();
         cols = m_layers[j].cols();
@@ -400,13 +394,13 @@ void MLP::weightDecay(const realnumber &lambda, const realnumber &lambda1, const
 
 void MLP::saveWeights()
 {
-    for (int j = 0; j <= m_last; ++j)
+    for (integer j = 0; j <= m_last; ++j)
         m_oldLayers[j] = m_layers[j];
 }
 
 void MLP::restoreWeights()
 {
-    for (int j = 0; j <= m_last; ++j)
+    for (integer j = 0; j <= m_last; ++j)
         m_layers[j] = m_oldLayers[j];
 }
 
@@ -415,7 +409,7 @@ void MLP::displayInfo(const realnumber &lambda, const realnumber &lambda1, const
 {
     realnumber maxCoeff = 0, mean = 0;
 
-    for (int j = 0; j <= m_last; ++j)
+    for (integer j = 0; j <= m_last; ++j)
     {
         maxCoeff = max(max(abs(m_layers[j].maxCoeff()), abs(m_layers[j].minCoeff())), maxCoeff);
         mean += m_layers[j].array().abs().mean();
@@ -477,7 +471,7 @@ bool MLP::displayMQE(clock_t const &start, realnumber &nextDisplayTime, realnumb
                                                 + momentum * previousDeltaWeight[m_last];
 
                 m_layers[m_last] += previousDeltaWeight[m_last];
-                for (int j = m_last-1; j >= 0; --j)
+                for (integer j = m_last-1; j >= 0; --j)
                 {
                     Delta[j] = DeltaHiddenLayer( m_layers[j+1],
                                                  Delta[j+1],
@@ -503,7 +497,7 @@ bool MLP::displayMQE(clock_t const &start, realnumber &nextDisplayTime, realnumb
                 realnumber MLP::findLambda()
                 {
                     realnumber sum = 0;
-                    for (int j = m_last; j >= 0; --j)
+                    for (integer j = m_last; j >= 0; --j)
                         sum += norm2(m_layers[j]);
                     return MAX_ERROR/(2*sum);
                 }

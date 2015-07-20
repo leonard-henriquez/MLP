@@ -12,7 +12,7 @@ class QMLP : public QObject, public MLP
     Q_OBJECT
 
 public:
-    QMLP(qint8 HL = 0, qint8 PL = 0): MLP(HL,PL) {}
+    QMLP(qint64 HL = 0, qint64 PL = 0): MLP(HL,PL) {}
     QMLP(const QMLP &other): QObject(), MLP(static_cast<MLP>(other)) {}
     virtual ~QMLP () {}
     QMLP& operator = (const QMLP &other) { clone(other); return *this;}

@@ -8,7 +8,7 @@
 // Typedef
 using namespace Eigen;
 using namespace std;
-typedef signed char integer;
+typedef long long int integer;
 typedef double realnumber;
 typedef vector<double> STLVector;
 typedef Matrix<double, Dynamic, 1> EigenVector;
@@ -17,7 +17,7 @@ typedef Matrix<double, Dynamic, Dynamic> EigenMatrix;
 inline STLVector EigenToSTLVector(EigenVector const & vector)
 {
     STLVector newVector(vector.size());
-    for(int i = 0; i < vector.size(); ++i)
+    for(integer i = 0; i < vector.size(); ++i)
         newVector[i] = vector[i];
     return newVector;
 }

@@ -9,19 +9,20 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->setupUi(this);
     mlp = new QMLP(ui->HL->value(), ui->PL->value());
-    thread = new WorkerThread(this, mlp);
+    thread = new MLPThread(this, mlp);
     mlpWindow = new MLPDialog(this, mlp);
     exampleWindow = new exampleDialog(this, mlp);
+    mnistWindow = new loadMNISTDialog(this, mlp);
+
     ui->graph->addGraph();
 
     connect(ui->Compute, &QPushButton::clicked, this, &MainWindow::compute);
     connect(mlpWindow, &MLPDialog::reset, [=]{resetMLP();});
     connect(mlp, &QMLP::newSecond, this, &MainWindow::updateDisplay);
     connect(mlp, &QMLP::disp, ui->Console, &QTextEdit::append);
-    connect(thread, SIGNAL(finished()), this, SLOT(computeFinished()));
+    connect(thread, &MLPThread::finished, this, &MainWindow::computeFinished);
     connect(ui->HL, static_cast<void (QSpinBox::*)(qint32)>(&QSpinBox::valueChanged), [=](qint32 value){resetMLP(value, -1);});
-    connect(ui->PL, static_cast<void (QSpinBox::*)(qint32)>(&QSpinBox::valueChanged), [=](qint32 value){resetMLP(-1, value);});
-    connect(mlpWindow, &MLPDialog::MLPLoaded, exampleWindow, &exampleDialog::loadFromMLP);
+    connect(ui->PL, static_cast<void (QSpinBox::*)(qint32)>(&QSpinBox::valueChanged), [=](qint32 value){resetMLP(-1, value);});   
 }
 
 MainWindow::~MainWindow()
@@ -30,7 +31,7 @@ MainWindow::~MainWindow()
     delete mlp;
 }
 
-void MainWindow::resetMLP(qint8 HL, qint8 PL)
+void MainWindow::resetMLP(qint64 HL, qint64 PL)
 {
     if (!thread->isRunning())
     {
@@ -48,13 +49,12 @@ void MainWindow::compute()
     {
         thread->terminate();
         ui->Compute->setText("Compute");
+        mlpWindow->enable(1);
     }
     else
     {
         ui->graph->graph(0)->clearData();
-        exampleWindow->saveToMLP();
-        exampleWindow->loadFromMLP();
-        if(mlp->setArchitecture(MLP::INIT))
+        if(mlp->isSet())
         {
             ui->graph->xAxis->setRange(0, ui->MaxTime->value());
             ui->graph->yAxis->setRange(0, mlp->MQE()*1.5);

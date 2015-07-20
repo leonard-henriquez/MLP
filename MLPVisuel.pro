@@ -22,6 +22,7 @@ SOURCES += main.cpp\
     qcustomplot.cpp \
     exampledialog.cpp \
     mlpdialog.cpp \
+    loadmnistdialog.cpp
 
 HEADERS  += mainwindow.h \
     multilayerperceptron.h \
@@ -31,10 +32,12 @@ HEADERS  += mainwindow.h \
     qcustomplot.h \
     exampledialog.h \
     mlpdialog.h \
-    mlpmath.h
+    mlpmath.h \
+    loadmnistdialog.h
 
 FORMS    += mainwindow.ui \
     mlpdialog.ui \
-    exampledialog.ui
+    exampledialog.ui \
+    loadmnistdialog.ui
 
 INCLUDEPATH += $$PWD/Eigen

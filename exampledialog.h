@@ -4,7 +4,6 @@
 #include <QMainWindow>
 #include <QtCore>
 #include <QStandardItemModel>
-#include <Eigen/Dense>
 #include <QFileDialog>
 #include <QMessageBox>
 #include "qmlp.h"
@@ -22,22 +21,12 @@ public:
     ~exampleDialog();
 
 public slots:
-    void refreshView();
-    void loadExamples();
-    void saveExamples();
-    void saveToMLP();
-    void loadFromMLP();
-    void addOrRemoveExample(qint32 add);
-    void addOrRemoveEntry(qint32 add);
-
-private slots:
-    void on_pushButton_clicked();
+    void refreshView(int index);
 
 private:
     Ui::exampleDialog *ui;
     QMLP *_mlp;
-    QSignalMapper *signalMapper, *signalMapper2;
-    QStandardItemModel *model, *validationModel;
+    QStandardItemModel *model;
 };
 
 #endif // DIALOG_H

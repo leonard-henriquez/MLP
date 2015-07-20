@@ -87,8 +87,8 @@ void QMLP::save(QIODevice *f, const QMLP &mlp)
 
 QDataStream & operator << (QDataStream & out, const QMLP & mlp)
 {
-    out     << (qint8) mlp.m_perLayer
-            << (qint8) mlp.m_last
+    out     << (qint64) mlp.m_perLayer
+            << (qint64) mlp.m_last
             << mlp.m_input
             << mlp.m_output
             << mlp.m_mean
@@ -116,9 +116,9 @@ QDataStream & operator >> (QDataStream & in, QMLP & mlp)
 QDataStream & operator << (QDataStream & out, const EigenMatrix & mat)
 {
     QString str;
-    for(qint8 i = 0; i < mat.rows(); ++i)
+    for(qint64 i = 0; i < mat.rows(); ++i)
     {
-        for(qint8 j = 0; j < mat.cols(); ++j)
+        for(qint64 j = 0; j < mat.cols(); ++j)
             str.append(QString::number(mat.coeff(i,j))+",");
         str.truncate(str.size()-1);
         str.append(";");
@@ -132,17 +132,17 @@ QDataStream & operator >> (QDataStream & in, EigenMatrix & mat)
     QString str;
     QStringList strCut, rowCut;
     in >> str;
-    qint8 jm = 0, im = str.split(";", QString::SkipEmptyParts).size();
+    qint64 jm = 0, im = str.split(";", QString::SkipEmptyParts).size();
     foreach (QString row, str.split(";", QString::SkipEmptyParts))
-        jm = max(qint8(row.count(",")+1), jm);
+        jm = max(qint64(row.count(",")+1), jm);
 
     mat.resize(im,jm);
 
     strCut = str.split(";", QString::SkipEmptyParts);
-    for (qint8 i = 0 ; i < im ; ++i)
+    for (qint64 i = 0 ; i < im ; ++i)
     {
         rowCut = strCut.value(i).split(",", QString::SkipEmptyParts);
-        for (qint8 j = 0 ; j < jm ; ++j)
+        for (qint64 j = 0 ; j < jm ; ++j)
             mat(i,j) = rowCut.value(j).toDouble();
     }
     return in;
