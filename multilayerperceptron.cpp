@@ -1,174 +1,122 @@
 #include "multilayerperceptron.h"
 
-MLP::MLP(integer HL, integer PL):
-m_perLayer(PL),
-m_last(HL+1),
-m_layers(NULL),
-m_input(),
-m_output(),
-m_mean(),
-m_sigma(0),
-m_oldLayers(NULL),
-m_Delta(NULL),
-m_activationFunction(tanH),
-m_derivativeActivationFunction(tanHDerivative)
-{ 
-    srand (time(NULL));
+MLP::MLP( void(*dispFunc)(string const &) ) :
+	layers(),
+	func(),
+	io(),
+	displayFunction(dispFunc)
+{
+	srand( time(NULL) );
 }
+
 
 void MLP::clone(const MLP & other)
 {
-    m_perLayer = other.m_perLayer;
-    m_last = other.m_last;
-    m_input = other.m_input;
-    m_output = other.m_output;
-    m_mean = other.m_mean;
-    m_sigma = other.m_sigma;
-    m_activationFunction = other.m_activationFunction;
-    m_derivativeActivationFunction = other.m_derivativeActivationFunction;
-    reset(NOTINIT);
-    if (other.m_layers != NULL)
-    {
-        for (integer i = 0; i <= m_last; ++i)
-            m_layers[i] = other.m_layers[i];
-    }
+	setStructure(other.getStructure(), NOT_INIT, RESET);
+	for (integer i = 0; i < other.layers.size(); ++i)
+	{
+		layers[i] = other.layers[i];
+	}
 }
+
 
 void MLP::clear()
 {
-    if(m_layers != NULL)
-    {
-        delete[] m_layers;
-        delete[] m_oldLayers;
-        delete[] m_Delta;
-        m_layers = NULL;
-        m_oldLayers = NULL;
-        m_Delta = NULL;
-    }
+	if ( isSet() )
+	{
+		layers.clear();
+	}
 }
 
-MLP& MLP::operator=(const MLP & other)
+
+MLP& MLP::operator =(const MLP & other)
 {
-    clone(other);
-    return *this;
+	clone(other);
+	return *this;
 }
 
-MLP::MLP (const MLP & other): MLP()
+
+MLP::MLP (const MLP & other) : MLP()
 {
-    clone(other);
+	clone(other);
 }
+
 
 MLP::~MLP()
 {
-    clear();
+	clear();
 }
 
-bool MLP::isSet()
+
+bool MLP::isSet() const
 {
-    return !(m_layers == NULL);
+	return (layers.size() > 0);
 }
 
-bool MLP::setArchitecture(initialise init, integer I, integer O)
+
+void MLP::setStructure(const vector<integer> &str, const initialise &init, const resetOrNot &overrideIfAlreadySet)
 {
-    if (!isSet())
-    {
-        if (m_last > 1 && m_perLayer > 0)
-        {
-            if (I == 0 && O == 0)
-            {
-                I = m_input.rows();
-                O = m_output.rows();
-            }
+	if (isSet() && overrideIfAlreadySet == RESET)
+	{
+		clear();
+	}
 
-            if (I > 0 && O > 0)
-            {
-                if (m_input.cols() != m_output.cols())
-                {
-                    display("Error! not the same number of examples");
-                    m_input.resize(I, min(m_input.cols(),m_output.cols()));
-                    m_output.resize(O, min(m_input.cols(),m_output.cols()));
-                }
+	if (!isSet() || overrideIfAlreadySet == RESET)
+	{
+		layers.set(str);
+	}
 
-                m_layers = new EigenMatrix[m_last+1];
-                m_Delta = new EigenMatrix[m_last+1];
-                m_oldLayers = new EigenMatrix[m_last+1];
-
-                // initialise randomly
-                if (init)
-                {
-                    m_layers[0]      = EigenMatrix::Random(m_perLayer,I+1);
-                    for(integer j = 1; j < m_last ; ++j)
-                        m_layers[j] = EigenMatrix::Random(m_perLayer,m_perLayer+1);
-                    m_layers[m_last] = EigenMatrix::Random(O,m_perLayer+1);
-
-                    // rescale
-                    for(integer j = 0; j <= m_last; ++j)
-                        m_layers[j] *= 0.5;//sqrt(6/(I+O));
-
-
-                    // create a backup
-                    for(integer j = 0; j <= m_last; ++j)
-                        m_oldLayers[j] = m_layers[j];
-                }
-                else
-                {
-                    m_layers[0].resize(m_perLayer,I+1);
-                    for(integer j = 1; j < m_last; ++j)
-                        m_layers[j].resize(m_perLayer,m_perLayer+1);
-                    m_layers[m_last].resize(O,m_perLayer+1);
-
-                    m_oldLayers[0].resize(m_perLayer,I+1);
-                    for(integer j = 1; j < m_last; ++j)
-                        m_oldLayers[j].resize(m_perLayer,m_perLayer+1);
-                    m_oldLayers[m_last].resize(O,m_perLayer+1);
-                }
-
-                m_Delta[0].resize(m_perLayer,1);
-                for(integer j = 1; j < m_last ; ++j)
-                    m_Delta[j].resize(m_perLayer,1);
-                m_Delta[m_last].resize(O,1);
-            }
-            else
-                display("Error! There isn't any input or output");
-        }
-        else
-            clear();
-    }
-    else if (m_input.rows()+1 != m_layers[0].cols() || m_output.rows() != m_layers[m_last].rows())
-            reset();
-    return isSet();
+	if (init == INIT)
+	{
+		// then initialise randomly
+		integer I = str[0];
+		integer O = str[layers.last()];
+		for (integer j = 0; j < layers.size(); ++j)
+		{
+			layers[j].setRandom(str[j + 1], str[j] + 1);
+			layers[j] *= sqrt( 6 / (I + O) );
+		}
+	}
 }
 
-void MLP::reset(initialise init, integer HL, integer PL)
+
+vector<integer> MLP::getStructure() const
 {
-    if (HL > 0)
-        m_last = HL+1;
-    if (PL > 0)
-        m_perLayer = PL;
-
-    clear();
-    setArchitecture(init);
+	return layers.get();
 }
 
-bool MLP::learn(realnumber ME, realnumber MT, realnumber LR, bool ALR, realnumber lambda, realnumber lambda1, realnumber lambda2)
+
+void MLP::setLearningData(learningData &data)
+{
+	io = data;
+}
+
+
+MLP::learningData MLP::getLearningData() const
+{
+	return io;
+}
+
+
+void MLP::gradientDescent(learningParameters &parameters)
 // learn permet de réaliser l'apprentissage du MLP
 {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *                                                                                                                           *
- *                                                  A IMPLEMENTER                                                            *
- *                                                                                                                           *
- *      normaliser les données d'entrainement                                                                                *
- *      erreur en dessous de laquelle un exemple n'est plus traité                                                           *
- *      weight decay                                                                                                         *
- *      OK: variation du taux d'apprentissage (algo de Vogl) OU poids distinct pour chaque connexion (Sanossian & Evans)     *
- *      élagage                                                                                                              *
- *      injection de bruit                                                                                                   *
- *      ensemble de validation                                                                                               *
- *      early stop                                                                                                           *
- *                                                                                                                           *
- *                                                                                                                           *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+*                                                                                                                           *
+*                                                  A IMPLEMENTER                                                            *
+*                                                                                                                           *
+*      normaliser les données d'entrainement                                                                                *
+*      erreur en dessous de laquelle un exemple n'est plus traité                                                           *
+*      weight decay                                                                                                         *
+*      OK: variation du taux d'apprentissage (algo de Vogl) OU poids distinct pour chaque connexion (Sanossian & Evans)     *
+*      élagage                                                                                                              *
+*      injection de bruit                                                                                                   *
+*      ensemble de validation                                                                                               *
+*      early stop                                                                                                           *
+*                                                                                                                           *
+*                                                                                                                           *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
  * ME = MAX_ERROR
@@ -177,329 +125,323 @@ bool MLP::learn(realnumber ME, realnumber MT, realnumber LR, bool ALR, realnumbe
  * ALR = ADAPTATIVELR (adaptative learning rate)
  */
 
-    if (isSet())
-    {
-        integer index, compteur = 0;
-        realnumber  nextDisplayTime = 0,
-                newMQE = MQE(lambda, lambda1, lambda2),
-                oldMQE = newMQE;
-        clock_t start = clock();
+	if ( isSet() )
+	{
+		integer index;
+		parameters.iteration = 0;
+		parameters.nextDisplayTime = 0;
+		parameters.mqe = MQE(parameters);
+		parameters.startingTime = clock();
+		arrayOfLayers layers_backup = layers, delta;
+		delta.resize( layers.size() );
+		for (int j = 0; j <= layers.last(); ++j)
+		{
+			delta[j].resize(layers[j].rows(), 1);
+		}
 
 
-        displayInfo(lambda, lambda1, lambda2);
-        display("learning starting...");
+		displayInfo(parameters);
+		display("learning starting...");
 
-        // pour la suite: "index" est le numéro de l'exemple que l'on est en train de traiter
-        // et "j" est le numéro de la couche
-        while(newMQE > ME && (clock() - start) / (realnumber)CLOCKS_PER_SEC < MT)
-        {
-            // affiche "mqe" et "m_learningRate" si le dernier affichage date de plus d'une seconde
-            displayMQE(start, nextDisplayTime, newMQE, LR);
+		// pour la suite: "index" est le numéro de l'exemple que l'on est en train de traiter
+		// et "j" est le numéro de la couche
+		while (parameters.mqe < parameters.maxError && (clock() - parameters.startingTime) / (realnumber)CLOCKS_PER_SEC < parameters.maxTime)
+		{
+			// affiche "mqe" et "learningRate" si le dernier affichage date de plus d'une seconde
+			displayMQE(parameters);
 
-            // présente un exemple au hasard pour l'apprendre
+			// présente un exemple au hasard pour l'apprendre
 
-            index = rand()% m_input.cols(); // ATTENTION! A améliorer
+			index = rand() % io.examples(); // ATTENTION! A améliorer
 
-            saveWeights();
-            weightDecay(lambda, lambda1, lambda2);
-            modifyWeights(index, LR);
+			saveWeights(layers_backup);
+			weightDecay(parameters);
+			modifyWeights(parameters, index, delta);
 
-            // on vérifie s'ils sont meilleurs que les anciens, sinon on revient en arrière
-            newMQE = MQE(lambda, lambda1, lambda2);
-            modifyLearningRate(LR, ALR, oldMQE, newMQE);
-            compteur++;
-        }
+			// on vérifie s'ils sont meilleurs que les anciens, sinon on revient en arrière
+			modifyLearningRate(parameters, layers_backup);
+			parameters.iteration++;
+		}
 
-
-        display("learning finished! \n");
-        display("Iterations: " + toStr(int(compteur)) + "; Temps en secondes :  " + toStr ((clock() - start) / (realnumber)CLOCKS_PER_SEC) + "");
-        displayInfo(lambda, lambda1, lambda2);
-        return (newMQE <= ME);
-    }
-    else
-        return 0;
+		display("learning finished! \n");
+		display("Iterations: " + toStr( int(parameters.iteration) ) + "; Temps en secondes :  " + toStr( (clock() - parameters.startingTime) / (realnumber)CLOCKS_PER_SEC ) + "");
+		displayInfo(parameters);
+	}
 }
 
-realnumber MLP::weightCost(const realnumber &lambda, const realnumber &lambda1, const realnumber & lambda2)
+
+realnumber MLP::weightCost(const learningParameters &parameters) const
 {
-    realnumber sum = 0;
-    for (integer j = m_last; j >= 0; --j)
-    {
-        sum += ((j==m_last)? lambda1: lambda) * norm2(m_layers[j].block(0,0, m_layers[j].rows(), m_layers[j].cols()-1));
-        sum += lambda2 * norm2(m_layers[j].block(0,m_layers[j].cols()-1, m_layers[j].rows(),1));
-    }
-    return sum;
+	realnumber sum = 0;
+	integer j = layers.last();
+	sum += parameters.lambda[1] * norm2( layers[j].block(0, 0, layers[j].rows(), layers[j].cols() - 1) );
+	sum += parameters.lambda[2] * norm2( layers[j].block(0, layers[j].cols() - 1, layers[j].rows(), 1) );
+	for (--j; j >= 0; --j)
+	{
+		sum += parameters.lambda[0] * norm2( layers[j].block(0, 0, layers[j].rows(), layers[j].cols() - 1) );
+		sum += parameters.lambda[2] * norm2( layers[j].block(0, layers[j].cols() - 1, layers[j].rows(), 1) );
+	}
+	return sum;
 }
 
-void MLP::modifyWeights(const integer &exampleIndex, const realnumber &learningRate)
+
+void MLP::modifyWeights(const learningParameters &parameters, const integer &exampleIndex, arrayOfLayers &delta)
 {
-    modifyDelta(m_input.col(exampleIndex), m_output.col(exampleIndex), 0);
-    for (integer j = m_last; j >= 0; --j)
-        m_layers[j] +=
-                       learningRate
-                     * m_Delta[j]
-                     * addBias( (j>0) ? run(exampleIndex, j-1) : m_input.col(exampleIndex) ).transpose();
+	modifyDelta(io.getInput(exampleIndex), io.getOutput(exampleIndex), 0, delta);
+	for (integer j = layers.last(); j > 0; --j)
+	{
+		layers[j] +=
+		    parameters.learningRate
+		    * delta[j]
+		    * addBias( run(exampleIndex, j - 1) ).transpose();
+	}
+	layers[0] +=
+	    parameters.learningRate
+	    * delta[0]
+	    * addBias( io.getInput(exampleIndex) ).transpose();
 }
 
 
-EigenVector MLP::modifyDelta(EigenVector const &input, EigenVector const &output, integer const & layer)
+EigenVector MLP::modifyDelta(EigenVector const &yj, EigenVector const &yo, integer const & layer, arrayOfLayers &delta)
+// yo = desiredOutput
 {
-    EigenVector yj = input;
+	if ( layer == layers.last() )
+	{
+		delta[layer] =
+		    activation(layers[layer], yj, func.derivativeActivation).asDiagonal()
+		    * ( yo - activation(layers[layer], yj, func.activation) );
+	}
+	else
+	{
+		delta[layer] =
+		    activation(layers[layer], yj, func.derivativeActivation).asDiagonal()
+		    * layers[layer + 1].block(0, 0, layers[layer + 1].rows(), layers[layer + 1].cols() - 1).transpose()
+		    * modifyDelta(activation(layers[layer], yj, func.activation), yo, layer + 1, delta);
+	}
 
-    if (layer == m_last)
-        m_Delta[layer] =
-                  activation(m_layers[layer], yj, m_derivativeActivationFunction).asDiagonal()
-                * (output - activation(m_layers[layer], yj, m_activationFunction));
-    else
-        m_Delta[layer] =
-                  activation(m_layers[layer], yj, m_derivativeActivationFunction).asDiagonal()
-                * m_layers[layer+1].block(0,0,m_layers[layer+1].rows(), m_layers[layer+1].cols()-1).transpose()
-                * modifyDelta(activation(m_layers[layer], yj, m_activationFunction), output,layer+1);
-    return m_Delta[layer];
+	return delta[layer];
 }
 
-void MLP::modifyLearningRate(realnumber &learningRate, bool adaptativeLearningRate, realnumber &oldMQE, realnumber &newMQE)
+
+void MLP::modifyLearningRate(learningParameters &parameters, const arrayOfLayers &layers_backup)
 {
-    if (adaptativeLearningRate)
-    {
-        if (newMQE > (1+0.03/m_input.cols()) * oldMQE)
-        {
-            restoreWeights();
-            learningRate = min(max(learningRate - 0.3, realnumber(0.01)), learningRate*0.7);
-        }
-        else
-        {
-            oldMQE = newMQE;
-            learningRate += 0.001;
-        }
-    }
-    else
-        oldMQE = newMQE;
+	realnumber newmqe = MQE(parameters);
+	if (parameters.adaptativeLearningRate)
+	{
+		if (newmqe > ( 1 + 0.03 / io.examples() ) * parameters.mqe)
+		{
+			restoreWeights(layers_backup);
+			parameters.learningRate = min(max( parameters.learningRate - 0.3, realnumber(0.01) ), parameters.learningRate * 0.7);
+		}
+		else
+		{
+			parameters.mqe = newmqe;
+			parameters.learningRate += 0.001;
+		}
+	}
+	else
+	{
+		parameters.mqe = newmqe;
+	}
 }
 
-EigenMatrix MLP::run(const integer &exampleIndex, integer layer)
-// calcule la sortie associée à la matrice "m_input" jusqu'à couche numéro "layer"
+
+EigenMatrix MLP::run() const
 {
-    EigenMatrix output;
-    if (exampleIndex == -1)
-        output = m_input;
-    else
-        output = m_input.col(exampleIndex);
-
-    if (layer < 0)
-        layer = m_last;
-
-    for(integer j = 0; j <= layer; ++j)
-        output = activation(m_layers[j], output, m_activationFunction);
-    return output;
+	EigenMatrix output = io.getInput();
+	for (integer j = 0; j < layers.size(); ++j)
+	{
+		output = activation(layers[j], output, func.activation);
+	}
+	return output;
 }
 
-STLVector MLP::run(const STLVector &input)
+
+EigenMatrix MLP::run(const integer &exampleIndex, const integer &layer) const
+// calcule la sortie associée à la matrice "input" jusqu'à couche numéro "layer"
 {
-    if (setArchitecture(INIT))
-    {
-        EigenMatrix saveInput = m_input;
-        m_input = (STLToEigenVector(input) - m_mean) / m_sigma;
-        EigenVector output = run();
-        m_input = saveInput;
-        return EigenToSTLVector(output);
-    }
-    else
-        return STLVector();
+	EigenMatrix output = io.getInput(exampleIndex);
+	for (integer j = 0; j <= layer; ++j)
+	{
+		output = activation(layers[j], output, func.activation);
+	}
+	return output;
 }
 
-realnumber MLP::MQE(const realnumber &lambda, const realnumber &lambda1, const realnumber & lambda2)
+
+realnumber MLP::MQE(const learningParameters &parameters) const
 // renvoie l'erreur quadratique moyenne
 {
-    if (lambda != 0)
-        return (norm( run() - m_output ) + weightCost(lambda, lambda1, lambda2))/2;
-    else
-        // en fait c'est Tr(tE*E)
-        return norm(run()-m_output)/2;
+	if ( parameters.lambda != tab3() )
+	{
+		return ( norm( run() - io.getInput() ) + weightCost(parameters) ) / 2;
+	}
+	else
+	{
+		// en fait c'est Tr(tE*E)
+		return norm( run() - io.getOutput() ) / 2;
+	}
 }
 
-void MLP::setLearningExamples(const setOfExamples &set)
-{
-    m_input = setOfExamplesToEigenInputMatrix(set);
-    m_output = setOfExamplesToEigenOutputMatrix(set);
-}
-
-void MLP::setInput(const EigenMatrix &input, bool skipNormalisation, bool recalc)
-{
-    m_input = input;
-
-    if(!skipNormalisation)
-    {
-        if(recalc)
-        {
-            EigenVector mean(m_input.rows());
-            for(integer i = 0; i < m_input.rows(); ++i)
-                mean(i) = m_input.row(i).sum()/m_input.cols();
-            m_mean = mean * (EigenVector::Ones(m_input.cols())).transpose();
-            m_sigma = sqrt(norm(m_input-m_mean));
-        }
-        m_input = (m_input - m_mean) / m_sigma;
-    }
-}
-
-void MLP::setOutput(const EigenMatrix &output)
-{
-    m_output = output;
-}
-
-EigenMatrix MLP::getInput()
-{
-    return m_input*m_sigma+m_mean;
-}
-
-EigenMatrix MLP::getOutput()
-{
-    return m_output;
-}
 
 void MLP::setActivationFunction(integer i)
 {
-    string str;
-    switch (i)
-    {
-    default:
-        m_activationFunction = sigmoid;
-        m_derivativeActivationFunction = sigmoidDerivative;
-        str = "sigmoid";
-        break;
-    case 1:
-        m_activationFunction = tanH;
-        m_derivativeActivationFunction = tanHDerivative;
-        str = "tanh";
-        break;
-    }
-    display("activation function: " + str);
+	string str;
+	switch (i)
+	{
+	default:
+		func.activation = sigmoid;
+		func.derivativeActivation = sigmoidDerivative;
+		str = "sigmoid";
+		break;
+	case 1:
+		func.activation = tanH;
+		func.derivativeActivation = tanHDerivative;
+		str = "tanh";
+		break;
+	}
+	display("activation function: " + str);
 }
 
-void MLP::weightDecay(const realnumber &lambda, const realnumber &lambda1, const realnumber &lambda2)
+
+void MLP::weightDecay(const learningParameters &parameters)
 {
-    integer rows, cols;
-    for (integer j = 0; j <= m_last ; ++j)
-    {
-        rows = m_layers[j].rows();
-        cols = m_layers[j].cols();
-        m_layers[j].block(0, 0, rows, cols-1) =
-                ( 1 - ((j==m_last)? lambda1: lambda) )
-                * m_layers[j].block(0, 0, rows, cols-1);
-        m_layers[j].block(0, cols-1, rows, 1) =
-                ( 1 - lambda2 )
-                * m_layers[j].block(0, cols-1, rows, 1);
-    }
+	integer rows, cols, j;
+	for (j = 0; j < layers.last(); ++j)
+	{
+		rows = layers[j].rows();
+		cols = layers[j].cols();
+		layers[j].block(0, 0, rows, cols - 1) =
+		    (1 - parameters.lambda[0])
+		    * layers[j].block(0, 0, rows, cols - 1);
+		layers[j].block(0, cols - 1, rows, 1) =
+		    (1 - parameters.lambda[2])
+		    * layers[j].block(0, cols - 1, rows, 1);
+	}
+	j = layers.last();
+	rows = layers[j].rows();
+	cols = layers[j].cols();
+	layers[j].block(0, 0, rows, cols - 1) =
+	    (1 - parameters.lambda[1])
+	    * layers[j].block(0, 0, rows, cols - 1);
+	layers[j].block(0, cols - 1, rows, 1) =
+	    (1 - parameters.lambda[2])
+	    * layers[j].block(0, cols - 1, rows, 1);
 }
 
-void MLP::saveWeights()
+
+void MLP::saveWeights(arrayOfLayers &layers_backup) const
 {
-    for (integer j = 0; j <= m_last; ++j)
-        m_oldLayers[j] = m_layers[j];
+	for (integer j = 0; j <= layers.last(); ++j)
+	{
+		layers_backup[j] = layers[j];
+	}
 }
 
-void MLP::restoreWeights()
+
+void MLP::restoreWeights(const arrayOfLayers &layers_backup)
 {
-    for (integer j = 0; j <= m_last; ++j)
-        m_layers[j] = m_oldLayers[j];
+	for (integer j = 0; j <= layers.last(); ++j)
+	{
+		layers[j] = layers_backup[j];
+	}
 }
 
-void MLP::displayInfo(const realnumber &lambda, const realnumber &lambda1, const realnumber & lambda2)
+
+void MLP::displayInfo(const learningParameters &parameters) const
 // affiche les informations sur le MLP
 {
-    realnumber maxCoeff = 0, mean = 0;
+	realnumber maxCoeff = 0, mean = 0;
 
-    for (integer j = 0; j <= m_last; ++j)
-    {
-        maxCoeff = max(max(abs(m_layers[j].maxCoeff()), abs(m_layers[j].minCoeff())), maxCoeff);
-        mean += m_layers[j].array().abs().mean();
-    }
-    string str;
+	for (integer j = 0; j <= layers.last(); ++j)
+	{
+		maxCoeff = max(max( abs( layers[j].maxCoeff() ), abs( layers[j].minCoeff() ) ), maxCoeff);
+		mean += layers[j].array().abs().mean();
+	}
+	string str;
 
-    str +=   "MQE = "                     +   toStr(MQE())               + "\n";
-    str +=   "cost of weights = "         +   toStr(weightCost(lambda, lambda1, lambda2)/2)      + "\n";
-    str +=   "max weight = "              +   toStr(maxCoeff)            + "\n";
-    str +=   "mean of abs weights = "     +   toStr(mean/m_input.cols()) + "\n";
-    display(str);
+	str +=   "MQE = "                     +   toStr( MQE(parameters) )               + "\n";
+	str +=   "cost of weights = "         +   toStr(weightCost(parameters) / 2)      + "\n";
+	str +=   "max weight = "              +   toStr(maxCoeff)            + "\n";
+	str +=   "mean of abs weights = "     +   toStr( mean / io.examples() ) + "\n";
+	display(str);
 }
 
-void MLP::display(const string & str)
-{
-    cout << str << endl;
-}
 
-bool MLP::displayMQE(clock_t const &start, realnumber &nextDisplayTime, realnumber const &MQE, realnumber const & learningRate, realnumber const &refreshTime)
-// affiche le "m_learningRate" et la "mqe" toutes les secondes
+bool MLP::displayMQE(learningParameters &parameters) const
+// affiche le "learningRate" et la "mqe" toutes les secondes
 {
-    if ((clock() - start) / (realnumber)CLOCKS_PER_SEC > nextDisplayTime)
-    {
-        nextDisplayTime += refreshTime;
-        display("learning rate : " + toStr(learningRate) + "; MQE : " + toStr(MQE));
-        return 1;
-    }
-    else
-        return 0;
+	if ( (clock() - parameters.startingTime) / (realnumber)CLOCKS_PER_SEC > parameters.nextDisplayTime )
+	{
+		parameters.nextDisplayTime += parameters.refreshTime;
+		display( "learning rate : " + toStr(parameters.learningRate) + "; MQE : " + toStr(parameters.mqe) );
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
 }
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *                                                                                                                           *
- *                                                   RECUIT SIMULE                                                           *
- *                                                                                                                           *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                                                                           *
+*                                                   RECUIT SIMULE                                                           *
+*                                                                                                                           *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
-                if (deltaMQE > 0 && rand()/RAND_MAX > exp(-deltaMQE/m_learningRate))
+                if (deltaMQE > 0 && rand()/RAND_MAX > exp(-deltaMQE/learningRate))
                 {
                     restoreWeights();
-                    m_learningRate *= alpha;
+                    learningRate *= alpha;
                 }
                 else
                     mqe += deltaMQE;
 
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *                                                                                                                           *
- *                                                  BACK PROP WITH MOMEMTUM                                                  *
- *                                                                                                                           *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                                                                           *
+*                                                  BACK PROP WITH MOMEMTUM                                                  *
+*                                                                                                                           *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
-                Delta[m_last] = DeltaLastLayer(m_output, run(m_input));
-                previousDeltaWeight[m_last] = DeltaWeight(m_learningRate, Delta[m_last], run(m_input, m_last-1, 1))
-                                                + momentum * previousDeltaWeight[m_last];
+                Delta[layers.last()] = DeltaLastLayer(io.output, run(io.input));
+                previousDeltaWeight[layers.last()] = DeltaWeight(learningRate, Delta[layers.last()], run(io.input, layers.last()-1, 1))
++ momentum * previousDeltaWeight[layers.last()];
 
-                m_layers[m_last] += previousDeltaWeight[m_last];
-                for (integer j = m_last-1; j >= 0; --j)
+                layers[layers.last()] += previousDeltaWeight[layers.last()];
+                for (integer j = layers.last()-1; j >= 0; --j)
                 {
-                    Delta[j] = DeltaHiddenLayer( m_layers[j+1],
+                    Delta[j] = DeltaHiddenLayer( layers[j+1],
                                                  Delta[j+1],
-                                                 run(m_input,j)  );
+                                                 run(io.input,j)  );
 
-                    previousDeltaWeight[j] = DeltaWeight( m_learningRate,
+                    previousDeltaWeight[j] = DeltaWeight( learningRate,
                                                           Delta[j],
-                                                          run(m_input, j-1, 1)  );
+                                                          run(io.input, j-1, 1)  );
 
-                    m_layers[j]+= previousDeltaWeight[j];
+                    layers[j]+= previousDeltaWeight[j];
                 }
 
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *                                                                                                                           *
- *                                                  BACK PROP WITH MOMEMTUM                                                  *
- *                                                                                                                           *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                                                                           *
+*                                                  BACK PROP WITH MOMEMTUM                                                  *
+*                                                                                                                           *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
                 realnumber MLP::findLambda()
                 {
                     realnumber sum = 0;
-                    for (integer j = m_last; j >= 0; --j)
-                        sum += norm2(m_layers[j]);
+                    for (integer j = layers.last(); j >= 0; --j)
+                        sum += norm2(layers[j]);
                     return MAX_ERROR/(2*sum);
                 }
 
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */

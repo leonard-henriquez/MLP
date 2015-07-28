@@ -15,86 +15,234 @@
 #include "multilayerperceptron_global.h"
 
 
+inline void display(const string & str)
+{
+	cout << str << endl;
+}
+
 
 class MLP
 {
 public:
-    enum initialise {NOTINIT, INIT};
-    struct learningData
-    {
-        int iteration;
-        clock_t startingTime;
-        clock_t nextDisplayTime;
-        realnumber currentMQE;
-        realnumber maxError;
-        realnumber maxTime;
-        realnumber learningRate;
-        bool adaptativeLearningRate;
-        realnumber lambda;
-        realnumber lambda1;
-        realnumber lambda2;
-        EigenMatrix * m_oldLayers;
-        EigenMatrix * m_Delta;
-    };
+	enum initialise {NOT_INIT, INIT};
+	enum resetOrNot {NOT_RESET, RESET};
+	enum normaliseInput {NOT_NORMALISE, NORMALISE, NORMALISE_WITHOUT_RECALC};
+	typedef array<realnumber, 3> tab3;
+	class arrayOfLayers : private vector<EigenMatrix>
+	{
+public:
+		arrayOfLayers( const vector<integer> &structure = vector<integer>() ) : vector<EigenMatrix>(), _size(0), _last(-1)
+		{
+			set(structure);
+		}
+		void set( const vector<integer> &structure = vector<integer>() )
+		{
+			if (structure.size() > 1)
+			{
+				arrayOfLayers::resize(structure.size() - 1);
+				for (integer i = 0; i < size() - 1; ++i)
+					at(i).resize(structure[i + 1], structure[i] + 1);
+			}
+			else
+			{
+				vector<EigenMatrix>::clear();
+			}
+		}
+		vector<integer> get() const
+		{
+			vector<integer> vect;
+			vect.push_back(at(0).cols() - 1);
+			for (integer j = 0; j < size(); ++j)
+				vect.push_back( at(j).cols() );
+			return vect;
+		}
+		void clear()
+		{
+			vector<EigenMatrix>::clear();
+		}
+		void resize(integer size)
+		{
+			_size = size;
+			_last = _size - 1;
+			resize(_size);
+		}
+		integer size() const
+		{
+			return _size;
+		}
+		integer last() const
+		{
+			return _last;
+		}
+		arrayOfLayers& operator =(const arrayOfLayers &other)
+		{
+			arrayOfLayers::resize( other.size() );
+			for (integer i = 0; i < _size; ++i)
+				operator [](i) = other[i];
+			return *this;
+		}
+		EigenMatrix& operator [](integer i)
+		{
+			return operator [](i);
+		}
+		EigenMatrix const operator [](integer i) const
+		{
+			return at(i);
+		}
+private:
+		integer _size;
+		integer _last;
+	};
+	struct functions
+	{
+		functions(realnumber(*aF)(realnumber const &) = tanH, realnumber(*dAF)(realnumber const &) = tanHDerivative) :
+			activation(aF),
+			derivativeActivation(dAF)
+		{}
 
+		realnumber (*activation)(realnumber const&);
+		realnumber (*derivativeActivation)(realnumber const&);
+	};
+	struct learningParameters
+	{
+		learningParameters(realnumber ME = 0.001, realnumber MT = 60, realnumber LR = 1, bool ALR = 1, realnumber L0 = 0, realnumber L1 = 0, realnumber L2 = 0) :
+			iteration(0),
+			startingTime(0),
+			refreshTime(1),
+			nextDisplayTime(0),
+			mqe(0),
+			maxError(ME),
+			maxTime(MT),
+			learningRate(LR),
+			adaptativeLearningRate(ALR),
+			lambda({
+			{L0, L1, L2}
+		})
+		{}
 
-    MLP(integer HL = 0, integer PL = 0);
-    MLP &operator = (const MLP &);
-    MLP (const MLP &other);
+		int iteration;
+		clock_t startingTime;
+		clock_t refreshTime;
+		clock_t nextDisplayTime;
+		realnumber mqe;
+		realnumber maxError;
+		realnumber maxTime;
+		realnumber learningRate;
+		bool adaptativeLearningRate;
+		tab3 lambda;
+	};
+	class learningData
+	{
+public:
+		learningData( EigenMatrix I = EigenMatrix(), EigenMatrix O = EigenMatrix() ) :
+			input(),
+			output(),
+			mean(),
+			sigma(0)
+		{
+			I.resize( input.rows(), examples() );
+			O.resize( output.rows(), examples() );
+			setInput(I);
+			setOutput(O);
+		}
+		EigenMatrix getOriginalInput() const
+		{
+			return input * sigma + mean * ( EigenVector::Ones( input.cols() ) ).transpose();
+		}
+		EigenMatrix getInput() const
+		{
+			return input;
+		}
+		EigenMatrix getInput(integer i) const
+		{
+			return input.col(i);
+		}
+		void setInput( EigenMatrix I = EigenMatrix() )
+		{
+			input = I;
+			mean.resize( input.rows() );
+			for (integer i = 0; i < input.rows(); ++i)
+				mean(i) = input.row(i).sum() / input.cols();
+			EigenMatrix mean_resized = mean * ( EigenVector::Ones( input.cols() ) ).transpose();
+			sigma = sqrt( norm(input - mean_resized) );
+			input = (input - mean_resized) / sigma;
+		}
+		EigenMatrix getOutput() const
+		{
+			return output;
+		}
+		EigenMatrix getOutput(integer i) const
+		{
+			return output.col(i);
+		}
+		void setOutput( EigenMatrix O = EigenMatrix() )
+		{
+			output = O;
+		}
+		EigenMatrix getMean(integer i = 1) const
+		{
+			return mean * ( EigenVector::Ones(i) ).transpose();
+		}
+		realnumber getSigma() const
+		{
+			return sigma;
+		}
+		integer examples() const
+		{
+			return min( input.cols(), output.cols() );
+		}
+private:
+		EigenMatrix input;
+		EigenMatrix output;
+		EigenVector mean;
+		realnumber sigma;
+	};
 
-    bool isSet();
-    bool setArchitecture(initialise init = INIT, integer I = 0, integer O = 0);
-    void reset(initialise init = INIT, integer HL = 0, integer PL = 0);
-    virtual ~MLP();
+	MLP(void(*dispFunc)(const string &) = display);
+	MLP &operator =(const MLP &);
 
-    void setInput(const EigenMatrix &input, bool skipNormalisation = 0, bool recalc = 1);
-    void setOutput(const EigenMatrix &output);
-    EigenMatrix getInput();
-    EigenMatrix getOutput();
-    void setLearningExamples(const setOfExamples &set);
-    void setActivationFunction(integer i); // 0 sig, 1 tanh
+	MLP (const MLP &other);
+	virtual ~MLP();
+	bool isSet () const;
+	void setStructure (const vector<integer> &str, const initialise &init, const resetOrNot &overrideIfAlreadySet);
+	vector<integer> getStructure () const;
+	void setActivationFunction (integer i); // 0 sig, 1 tanh
+	integer getActivationFunction () const;
+	void setLearningData (learningData &data);
+	learningData getLearningData () const;
+	void setDisplayFunction ( void (*displayFunction)(string const&) );
 
-    STLVector run(const STLVector &input);
-    EigenMatrix run(const integer &exampleIndex = -1, integer layer = -1);
+	EigenMatrix run () const;
+	EigenMatrix run (const integer &exampleIndex, const integer &layer) const;
+	realnumber MQE (const learningParameters &parameters) const;
 
-    realnumber MQE(const realnumber &lambda0 = 0, const realnumber &lambda1 = 0, const realnumber & lambda2 = 0);
-    bool learn(realnumber ME = MAX_ERROR, realnumber MT = MAX_TIME, realnumber LR = LEARNING_RATE, bool ALR = ADAPTATIVELR, realnumber lambda = LAMBDA, realnumber lambda1 = LAMBDA1, realnumber lambda2 = LAMBDA2);
-    virtual void displayInfo(const realnumber &lambda, const realnumber &lambda1, const realnumber & lambda2);
+	void gradientDescent (learningParameters &parameters);
 
-    
+	virtual void displayInfo (const learningParameters &parameters) const;
+
 protected:
+	void clone (const MLP &);
+	void clear ();
 
-    void clone(const MLP &);
-    void clear();
+	virtual bool displayMQE (learningParameters &parameters) const;
 
-    virtual void display(const string & str);
-    virtual bool displayMQE(clock_t const &start, realnumber &nextDisplayTime, const realnumber & mqe, const realnumber &learningRate, const realnumber &refreshTime = 1);
+	// apprentissage
+	void weightDecay (const learningParameters &parameters);
+	realnumber weightCost (const learningParameters &parameters) const;
+	EigenVector modifyDelta (const EigenVector &yj, const EigenVector &output, const integer &exampleIndex, arrayOfLayers &delta);
+	void modifyWeights (const learningParameters &data, const integer &exampleIndex, arrayOfLayers &delta);
+	void modifyLearningRate (learningParameters &data, const arrayOfLayers &layers_backup);
+	void saveWeights (arrayOfLayers &layers_backup) const;
+	void restoreWeights (const arrayOfLayers &layers_backup);
 
-    // apprentissage
-    void weightDecay(const realnumber &lambda, const realnumber &lambda1, const realnumber &lambda2);
-    realnumber weightCost(const realnumber &lambda, const realnumber &lambda1, const realnumber &lambda2);
-    EigenVector modifyDelta(const EigenVector &input, const EigenVector &output, const integer &exampleIndex);
-    void modifyWeights(const integer &exampleIndex, const realnumber &learningRate);
-    void modifyLearningRate(realnumber &learningRate, bool adaptativeLearningRate, realnumber &oldMQE, realnumber &newMQE);
-    void saveWeights();
-    void restoreWeights();
+	// structure du MLP
+	arrayOfLayers layers;
+	functions func;
 
-    // structure du MLP
-    integer m_perLayer;
-    integer m_last;
-    EigenMatrix * m_layers;
+	// données entres/sorties
+	learningData io;
 
-    // données entres/sorties
-    EigenMatrix m_input,
-                m_output;
-    EigenMatrix m_mean;
-    realnumber m_sigma;
-
-    EigenMatrix * m_oldLayers,
-                * m_Delta;
-
-    realnumber (*m_activationFunction)(realnumber const&);
-    realnumber (*m_derivativeActivationFunction)(realnumber const&);
+	void (*displayFunction)(string const&);
 };
 
 #endif // MULTILAYERPERCEPTRON_H
