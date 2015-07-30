@@ -1,8 +1,11 @@
 #ifndef MULTILAYERPERCEPTRON_GLOBAL_H
 #define MULTILAYERPERCEPTRON_GLOBAL_H
 
+#include <time.h>
 #include "types.h"
 #include "mlpmath.h"
+
+const realnumber CLOCKS_PER_SEC_INV = 1 / realnumber(CLOCKS_PER_SEC);
 
 const realnumber LEARNING_RATE           = 0.5,
                  ALPHA_PLUS              = 0.01,
@@ -15,5 +18,8 @@ const realnumber LEARNING_RATE           = 0.5,
                  MAX_DELTA_MQE           = 0.02,
                  LAST_LAYER_LINEAR       = 0,
                  ADAPTATIVELR            = 0;
+
+const integer NBEXAMPLES = 2000;
+
 
 #endif // MULTILAYERPERCEPTRON_GLOBAL_H

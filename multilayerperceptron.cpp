@@ -54,6 +54,18 @@ bool MLP::isSet() const
 }
 
 
+void MLP::set(const arrayOfLayers &futurLayers)
+{
+	layers = futurLayers;
+}
+
+
+MLP::arrayOfLayers MLP::get() const
+{
+	return layers;
+}
+
+
 void MLP::setStructure(const vector<integer> &str, const initialise &init, const resetOrNot &overrideIfAlreadySet)
 {
 	if (isSet() && overrideIfAlreadySet == RESET)
@@ -68,13 +80,13 @@ void MLP::setStructure(const vector<integer> &str, const initialise &init, const
 
 	if (init == INIT)
 	{
-		// then initialise randomly
-		integer I = str[0];
-		integer O = str[layers.last()];
-		for (integer j = 0; j < layers.size(); ++j)
+		// then initialise random
+		integer I = str[0], O = str[layers.last() + 1];
+		const float factor = sqrtf( (float) 6 / (I + O) );
+		for (integer j = 0; j <= layers.last(); ++j)
 		{
 			layers[j].setRandom(str[j + 1], str[j] + 1);
-			layers[j] *= sqrt( 6 / (I + O) );
+			layers[j] *= factor;
 		}
 	}
 }
@@ -145,7 +157,7 @@ void MLP::gradientDescent(learningParameters &parameters)
 
 		// pour la suite: "index" est le numéro de l'exemple que l'on est en train de traiter
 		// et "j" est le numéro de la couche
-		while (parameters.mqe < parameters.maxError && (clock() - parameters.startingTime) / (realnumber)CLOCKS_PER_SEC < parameters.maxTime)
+		while (parameters.mqe > parameters.maxError && (clock() - parameters.startingTime) * CLOCKS_PER_SEC_INV < parameters.maxTime)
 		{
 			// affiche "mqe" et "learningRate" si le dernier affichage date de plus d'une seconde
 			displayMQE(parameters);
@@ -164,7 +176,7 @@ void MLP::gradientDescent(learningParameters &parameters)
 		}
 
 		display("learning finished! \n");
-		display("Iterations: " + toStr( int(parameters.iteration) ) + "; Temps en secondes :  " + toStr( (clock() - parameters.startingTime) / (realnumber)CLOCKS_PER_SEC ) + "");
+		display("Iterations: " + toStr( int(parameters.iteration) ) + "; Temps en secondes :  " + toStr( (clock() - parameters.startingTime) * CLOCKS_PER_SEC_INV ) + "");
 		displayInfo(parameters);
 	}
 }
@@ -231,7 +243,7 @@ void MLP::modifyLearningRate(learningParameters &parameters, const arrayOfLayers
 		if (newmqe > ( 1 + 0.03 / io.examples() ) * parameters.mqe)
 		{
 			restoreWeights(layers_backup);
-			parameters.learningRate = min(max( parameters.learningRate - 0.3, realnumber(0.01) ), parameters.learningRate * 0.7);
+			parameters.learningRate = min( max( parameters.learningRate - realnumber(0.3), realnumber(0.01) ), parameters.learningRate * realnumber(0.7) );
 		}
 		else
 		{
@@ -249,7 +261,7 @@ void MLP::modifyLearningRate(learningParameters &parameters, const arrayOfLayers
 EigenMatrix MLP::run() const
 {
 	EigenMatrix output = io.getInput();
-	for (integer j = 0; j < layers.size(); ++j)
+	for (integer j = 0; j <= layers.last(); ++j)
 	{
 		output = activation(layers[j], output, func.activation);
 	}
@@ -281,6 +293,8 @@ realnumber MLP::MQE(const learningParameters &parameters) const
 		// en fait c'est Tr(tE*E)
 		return norm( run() - io.getOutput() ) / 2;
 	}
+	cout << run() << endl;
+	cout << io.getOutput() << endl;
 }
 
 
@@ -360,7 +374,7 @@ void MLP::displayInfo(const learningParameters &parameters) const
 	}
 	string str;
 
-	str +=   "MQE = "                     +   toStr( MQE(parameters) )               + "\n";
+	str +=   "MQE = "                     +   toStr(parameters.mqe)               + "\n";
 	str +=   "cost of weights = "         +   toStr(weightCost(parameters) / 2)      + "\n";
 	str +=   "max weight = "              +   toStr(maxCoeff)            + "\n";
 	str +=   "mean of abs weights = "     +   toStr( mean / io.examples() ) + "\n";
@@ -371,7 +385,7 @@ void MLP::displayInfo(const learningParameters &parameters) const
 bool MLP::displayMQE(learningParameters &parameters) const
 // affiche le "learningRate" et la "mqe" toutes les secondes
 {
-	if ( (clock() - parameters.startingTime) / (realnumber)CLOCKS_PER_SEC > parameters.nextDisplayTime )
+	if ( (clock() - parameters.startingTime) * CLOCKS_PER_SEC_INV > parameters.nextDisplayTime )
 	{
 		parameters.nextDisplayTime += parameters.refreshTime;
 		display( "learning rate : " + toStr(parameters.learningRate) + "; MQE : " + toStr(parameters.mqe) );

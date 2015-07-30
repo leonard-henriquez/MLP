@@ -6,12 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/***************************************** EXCEPTION *****************************************/
-#include <stdexcept>
-
 /******************************************** MLP ********************************************/
-#include <time.h>
-#include <algorithm>
 #include "multilayerperceptron_global.h"
 
 
@@ -40,7 +35,7 @@ public:
 			if (structure.size() > 1)
 			{
 				arrayOfLayers::resize(structure.size() - 1);
-				for (integer i = 0; i < size() - 1; ++i)
+				for (integer i = 0; i < size(); ++i)
 					at(i).resize(structure[i + 1], structure[i] + 1);
 			}
 			else
@@ -64,7 +59,7 @@ public:
 		{
 			_size = size;
 			_last = _size - 1;
-			resize(_size);
+			vector<EigenMatrix>::resize(_size);
 		}
 		integer size() const
 		{
@@ -78,12 +73,12 @@ public:
 		{
 			arrayOfLayers::resize( other.size() );
 			for (integer i = 0; i < _size; ++i)
-				operator [](i) = other[i];
+				vector<EigenMatrix>::operator [](i) = other[i];
 			return *this;
 		}
 		EigenMatrix& operator [](integer i)
 		{
-			return operator [](i);
+			return vector<EigenMatrix>::operator [](i);
 		}
 		EigenMatrix const operator [](integer i) const
 		{
@@ -140,10 +135,18 @@ public:
 			mean(),
 			sigma(0)
 		{
-			I.resize( input.rows(), examples() );
-			O.resize( output.rows(), examples() );
 			setInput(I);
 			setOutput(O);
+			input.resize( input.rows(), examples() );
+			output.resize( output.rows(), examples() );
+		}
+		learningData& operator =(const learningData &other)
+		{
+			input = other.input;
+			output = other.output;
+			mean = other.mean;
+			sigma = other.sigma;
+			return *this;
 		}
 		EigenMatrix getOriginalInput() const
 		{
@@ -165,7 +168,10 @@ public:
 				mean(i) = input.row(i).sum() / input.cols();
 			EigenMatrix mean_resized = mean * ( EigenVector::Ones( input.cols() ) ).transpose();
 			sigma = sqrt( norm(input - mean_resized) );
-			input = (input - mean_resized) / sigma;
+			if (sigma != 0)
+				input = (input - mean_resized) / sigma;
+			else
+				input = EigenMatrix( input.rows(), input.cols() );
 		}
 		EigenMatrix getOutput() const
 		{
@@ -204,7 +210,9 @@ private:
 	MLP (const MLP &other);
 	virtual ~MLP();
 	bool isSet () const;
-	void setStructure (const vector<integer> &str, const initialise &init, const resetOrNot &overrideIfAlreadySet);
+	void set (const arrayOfLayers &futurLayers);
+	arrayOfLayers get () const;
+	void setStructure (const vector<integer> &str, const initialise &init = INIT, const resetOrNot &overrideIfAlreadySet = RESET);
 	vector<integer> getStructure () const;
 	void setActivationFunction (integer i); // 0 sig, 1 tanh
 	integer getActivationFunction () const;

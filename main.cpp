@@ -4,6 +4,13 @@
 
 using namespace std;
 
+
+bool adr = 0;
+realnumber mT = 10, lR = 0.001;
+string input, output = "./out.mlp";
+
+
+
 int reverseInt(int i)
 {
 	unsigned char ch1, ch2, ch3, ch4;
@@ -32,7 +39,7 @@ EigenMatrix readMNISTPics()
 		file.read( (char*)&nbCols, sizeof(nbCols) );
 		nbCols = reverseInt(nbCols);
 
-		numberOfImages = 2000;
+		numberOfImages = NBEXAMPLES;
 
 		dataSet.resize(nbRows * nbCols, numberOfImages);
 
@@ -74,7 +81,8 @@ EigenMatrix readMNISTLabels()
 		magicNumber = reverseInt(magicNumber);
 		file.read( (char*)&numberOfImages, sizeof(numberOfImages) );
 		numberOfImages = reverseInt(numberOfImages);
-		numberOfImages = 2000;
+
+		numberOfImages = NBEXAMPLES;
 
 		dataSet = -EigenMatrix::Ones(10, numberOfImages);
 
@@ -98,18 +106,97 @@ EigenMatrix readMNISTLabels()
 }
 
 
+void readMLP(const string &input, MLP &mlp)
+{
+	std::ifstream file(input);
+	if ( file.is_open() )
+	{
+		integer size;
+		file >> size;
+		vector<integer> structure(size);
+		for (integer i = 0; i < size; ++i)
+			file >> structure[i];
+		MLP::arrayOfLayers layers(structure);
+		for (integer k = 0; k <= layers.last(); ++k)
+			for (integer i = 0; i < layers[k].rows(); ++i)
+				for (integer j = 0; j < layers[k].cols(); ++j)
+					file >> layers[k](i, j);
+		mlp.set(layers);
+		file.close();
+	}
+}
+
+
+void writeMLP(const string &output, const MLP &mlp)
+{
+	std::ofstream file(output);
+	if ( !output.empty() && file.is_open() )
+	{
+		MLP::arrayOfLayers layers = mlp.get();
+		file << layers.size() + 1;
+		for (integer i = 0; i < layers.size() + 1; ++i)
+			file << layers.get().at(i);
+		for (integer k = 0; k <= layers.last(); ++k)
+			for (integer i = 0; i < layers[k].rows(); ++i)
+				for (integer j = 0; j < layers[k].cols(); ++j)
+					file << layers[k].coeff(i, j);
+		file.close();
+	}
+}
+
+
+void arguments(int argc, char* argv[])
+{
+	integer opt;
+	while ( ( opt = getopt(argc, argv, "at:l:i:o:") ) != -1 )
+	{
+		switch (opt)
+		{
+		case 'a':
+			adr = 1;
+			break;
+		case 't':
+			mT = atof(optarg);
+			break;
+		case 'l':
+			lR = atof(optarg);
+			break;
+		case 'i':
+			input = optarg;
+			break;
+		case 'o':
+			output = optarg;
+			break;
+		}
+	}
+}
+
+
 int main(int argc, char* argv[])
 {
+	Eigen::setNbThreads(8);
+
+
+	arguments(argc, argv);
+	cout << "ADR? " << adr << "\nLearning Rate? " << lR << "\nMax Time? " << mT << "\n" << endl;
+
 	MLP mlp;
 	MLP::learningData data( readMNISTPics(), readMNISTLabels() );
 	mlp.setLearningData(data);
-	MLP::learningParameters paramaters;
-	paramaters.adaptativeLearningRate = true;
-	paramaters.learningRate = 0.05;
-	paramaters.lambda = {0, 0, 0};
-	paramaters.maxTime = 100000;
-	mlp.gradientDescent(paramaters);
-	cout << mlp.MQE(paramaters) << endl;
+	MLP::learningParameters parameters;
+	parameters.adaptativeLearningRate = adr;
+	parameters.learningRate = lR;
+	parameters.maxTime = mT;
+
+	if ( !input.empty() )
+		readMLP(input, mlp);
+	else
+		mlp.setStructure({784, 2000, 1500, 1000, 500, 10});
+
+	mlp.gradientDescent(parameters);
+
+	writeMLP(output, mlp);
+
 	return 0;
 }
 
