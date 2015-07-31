@@ -1,10 +1,8 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-//#ifndef QT_DEBUG
-//    #define NDEBUG
-//    #define EIGEN_USE_MKL_ALL
-//#endif
+//#define NDEBUG
+//#define EIGEN_USE_MKL_ALL
 
 #include <Eigen/Dense>
 #include <vector>

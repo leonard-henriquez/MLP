@@ -14,7 +14,8 @@ HEADERS += \
     mlpmath.h \
     types.h \
     multilayerperceptron.h \
-    multilayerperceptron_global.h
+    multilayerperceptron_global.h \
+    io.h
 
 CONFIG(debug, debug|release) {
     message(Debug build!)
