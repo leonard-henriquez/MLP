@@ -10,25 +10,16 @@ INCLUDEPATH += $PWD/Eigen
 include(deployment.pri)
 qtcAddDeployment()
 
-HEADERS += \
-    mlpmath.h \
-    types.h \
-    multilayerperceptron.h \
-    multilayerperceptron_global.h \
-    io.h
+HEADERS += multilayerperceptron.h \
+    io.h \
+    includes.h
 
-CONFIG(debug, debug|release) {
-    message(Debug build!)
-} else {
-    INCLUDEPATH += /opt/intel/mkl/include
-    LIBS += -L/opt/intel/mkl/lib/intel64 \
+INCLUDEPATH += /opt/intel/mkl/include
+LIBS += -L/opt/intel/mkl/lib/intel64 \
         -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core \
         -L/opt/intel/lib/intel64 \
         -liomp5 -lpthread -lm
-    DEFINES += NDEBUG
-    DEFINES += EIGEN_USE_MKL_ALL
-    message(Release build!)
-}
+DEFINES += NDEBUG \
+        EIGEN_USE_MKL_ALL
 
-QMAKE_CXXFLAGS_RELEASE -= -O2
-QMAKE_CXXFLAGS_RELEASE += -fast -march=core2 -openmp -static
+QMAKE_CXXFLAGS += -fast -march=corei7 -qopenmp -static

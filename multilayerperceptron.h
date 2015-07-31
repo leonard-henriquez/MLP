@@ -2,18 +2,14 @@
 #define MULTILAYERPERCEPTRON_H
 
 /******************************************* DEBUG *******************************************/
-#include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
+
+//#include <stdio.h>
+//#include <stdlib.h>
+#include "includes.h"
 
 /******************************************** MLP ********************************************/
 #include "multilayerperceptron_global.h"
 
-
-inline void display(const string & str)
-{
-	cout << str << endl;
-}
 
 
 class MLP
@@ -48,7 +44,7 @@ public:
 			vector<integer> vect;
 			vect.push_back(at(0).cols() - 1);
 			for (integer j = 0; j < size(); ++j)
-				vect.push_back( at(j).cols() );
+                vect.push_back( at(j).rows() );
 			return vect;
 		}
 		void clear()
