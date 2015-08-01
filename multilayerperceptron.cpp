@@ -60,7 +60,7 @@ void MLP::set(const arrayOfLayers &futurLayers)
 }
 
 
-MLP::arrayOfLayers MLP::get() const
+arrayOfLayers MLP::get() const
 {
 	return layers;
 }
@@ -104,7 +104,7 @@ void MLP::setLearningData(learningData &data)
 }
 
 
-MLP::learningData MLP::getLearningData() const
+learningData MLP::getLearningData() const
 {
 	return io;
 }

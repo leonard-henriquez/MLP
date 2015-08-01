@@ -125,7 +125,7 @@ void readMLP(const string &input, MLP &mlp)
 		while (j != string::npos);
 
 
-		MLP::arrayOfLayers layers(structure);
+        arrayOfLayers layers(structure);
 		istringstream matrix, line;
 		string smatrix, sline, scoeff;
 
@@ -166,7 +166,7 @@ void writeMLP(const string &output, const MLP &mlp)
 		file.write( str.c_str(), sizeof(char) * str.size() );
 		str.clear();
 
-		const MLP::arrayOfLayers layers = mlp.get();
+        const arrayOfLayers layers = mlp.get();
 
 		integer rows, cols;
 		for (integer i = 0; i <= layers.last(); ++i)

@@ -59,11 +59,11 @@ int main(int argc, char* argv[])
 //	MLP::learningData data(in, out);
 
 
-    MLP::learningData data( readMNISTPics(nbExamples), readMNISTLabels(nbExamples) );
+    learningData data( readMNISTPics(nbExamples), readMNISTLabels(nbExamples) );
 
 
 	mlp.setLearningData(data);
-	MLP::learningParameters parameters;
+    learningParameters parameters;
 	parameters.adaptativeLearningRate = adr;
 	parameters.learningRate = lR;
 	parameters.maxTime = mT;
