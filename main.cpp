@@ -1,7 +1,7 @@
 #include <iostream>
 #include "multilayerperceptron.h"
 #include "io.h"
-#include <omp.h>
+
 
 using namespace std;
 
@@ -13,7 +13,7 @@ integer nbExamples = 2000;
 void arguments(int argc, char* argv[])
 {
 	integer opt;
-	while ( ( opt = getopt(argc, argv, "at:l:i:o:") ) != -1 )
+	while ( ( opt = getopt(argc, argv, "at:l:i:o:e:") ) != -1 )
 	{
 		switch (opt)
 		{
@@ -28,13 +28,13 @@ void arguments(int argc, char* argv[])
 			break;
 		case 'i':
 			input = optarg;
-            break;
+			break;
 		case 'o':
 			output = optarg;
 			break;
-        case 'e':
-            nbExamples = atoi(optarg);
-            break;
+		case 'e':
+			nbExamples = atoi(optarg);
+			break;
 		}
 	}
 }
@@ -42,28 +42,16 @@ void arguments(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-	int nthreads = omp_get_num_threads();             // computation of the total number of threads
-	cout << endl << nthreads << " thread(s) available for computation" << endl;
-    cout << Eigen::nbThreads() << " thread(s) used by Eigen" << endl;
+    cout << "\033[1;1H\x1b[2J";
 
-	arguments(argc, argv);
-    cout << "\nADR? " << adr << "\nLearning Rate? " << lR << "\nMax Time? " << mT << "\n" << endl;
+    arguments(argc, argv);
 
 	MLP mlp;
 
-
-//	EigenMatrix in(2, 4), out(1, 4);
-//    in << -1, -1,  1,  1,
-//          -1,  1, -1,  1;
-//	out <<  0,  1,  1,  0;
-//	MLP::learningData data(in, out);
-
-
-    learningData data( readMNISTPics(nbExamples), readMNISTLabels(nbExamples) );
-
+	learningData data( readMNISTPics(nbExamples), readMNISTLabels(nbExamples) );
 
 	mlp.setLearningData(data);
-    learningParameters parameters;
+	learningParameters parameters;
 	parameters.adaptativeLearningRate = adr;
 	parameters.learningRate = lR;
 	parameters.maxTime = mT;
@@ -72,8 +60,8 @@ int main(int argc, char* argv[])
 		readMLP(input, mlp);
 	else
 		mlp.setStructure({784, 2000, 1500, 1000, 500, 10});
-//	mlp.setStructure({2, 2, 1});
 
+    cout << endl;
 
 	mlp.gradientDescent(parameters);
 

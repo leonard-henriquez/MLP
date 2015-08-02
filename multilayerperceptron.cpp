@@ -176,7 +176,7 @@ void MLP::gradientDescent(learningParameters &parameters)
 		}
 
 		display("learning finished! \n");
-        display("Iterations: " + to_string( int(parameters.iteration) ) + "; Temps en secondes :  " + to_string( (clock() - parameters.startingTime) * CLOCKS_PER_SEC_INV ) + "");
+		display("Iterations: " + to_string( int(parameters.iteration) ) + "; Temps en secondes :  " + to_string( (clock() - parameters.startingTime) * CLOCKS_PER_SEC_INV ) + "");
 		displayInfo(parameters);
 	}
 }
@@ -374,10 +374,10 @@ void MLP::displayInfo(const learningParameters &parameters) const
 	}
 	string str;
 
-    str +=   "MQE = "                     +   to_string(parameters.mqe)               + "\n";
-    str +=   "cost of weights = "         +   to_string(weightCost(parameters) / 2)      + "\n";
-    str +=   "max weight = "              +   to_string(maxCoeff)            + "\n";
-    str +=   "mean of abs weights = "     +   to_string( mean / io.examples() ) + "\n";
+	str +=   "MQE = "                     +   to_string(parameters.mqe)               + "\n";
+	str +=   "cost of weights = "         +   to_string(weightCost(parameters) / 2)      + "\n";
+	str +=   "max weight = "              +   to_string(maxCoeff)            + "\n";
+	str +=   "mean of abs weights = "     +   to_string( mean / io.examples() ) + "\n";
 	display(str);
 }
 
@@ -388,7 +388,7 @@ bool MLP::displayMQE(learningParameters &parameters) const
 	if ( (clock() - parameters.startingTime) * CLOCKS_PER_SEC_INV > parameters.nextDisplayTime )
 	{
 		parameters.nextDisplayTime += parameters.refreshTime;
-        display( "learning rate : " + to_string(parameters.learningRate) + "; MQE : " + to_string(parameters.mqe) );
+		display( "learning rate : " + to_string(parameters.learningRate) + "; MQE : " + to_string(parameters.mqe) );
 		return 1;
 	}
 	else

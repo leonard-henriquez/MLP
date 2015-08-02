@@ -3,9 +3,8 @@
 
 #include <fstream>
 #include <iostream>
-#include <string>
 
-
+const integer fs = sizeof(float), is = sizeof(integer);
 
 int reverseInt(int i)
 {
@@ -25,6 +24,8 @@ EigenMatrix readMNISTPics(const integer &nbExamples)
 	ifstream file("/home/leonard/MNIST/trainImages", ios::binary);
 	if ( file.is_open() )
 	{
+		cout << "loading images..." << endl;
+
 		int magicNumber = 0, numberOfImages = 0, nbRows = 0, nbCols = 0;
 		file.read( (char*)&magicNumber, sizeof(magicNumber) );
 		magicNumber = reverseInt(magicNumber);
@@ -35,11 +36,10 @@ EigenMatrix readMNISTPics(const integer &nbExamples)
 		file.read( (char*)&nbCols, sizeof(nbCols) );
 		nbCols = reverseInt(nbCols);
 
-        numberOfImages = nbExamples;
+		numberOfImages = nbExamples;
 
 		dataSet.resize(nbRows * nbCols, numberOfImages);
 
-		cout << "loading images:" << endl;
 		int j = 1;
 		for (int i = 0; i < numberOfImages; ++i)
 		{
@@ -52,13 +52,9 @@ EigenMatrix readMNISTPics(const integer &nbExamples)
 					dataSet(nbRows * r + c, i) = temp;
 				}
 			}
-			if (j * numberOfImages / 100 <= i)
-			{
-                cout << "*" << flush;
-				j++;
-			}
+			cout << "\r" << floor(i / (float) numberOfImages * 100) << "%";
 		}
-		cout << "100%" << endl;
+		cout << "\r" << "100%" << endl;
 	}
 	file.close();
 	return dataSet;
@@ -72,30 +68,27 @@ EigenMatrix readMNISTLabels(const integer &nbExamples)
 	ifstream file("/home/leonard/MNIST/trainLabels", ios::binary);
 	if ( file.is_open() )
 	{
+		cout << "loading labels..." << endl;
+
 		int magicNumber = 0, numberOfImages = 0;
 		file.read( (char*)&magicNumber, sizeof(magicNumber) );
 		magicNumber = reverseInt(magicNumber);
 		file.read( (char*)&numberOfImages, sizeof(numberOfImages) );
 		numberOfImages = reverseInt(numberOfImages);
 
-        numberOfImages = nbExamples;
+		numberOfImages = nbExamples;
 
 		dataSet = -EigenMatrix::Ones(10, numberOfImages);
 
-		cout << "loading labels:" << endl;
 		int j = 1;
 		for (int i = 0; i < numberOfImages; ++i)
 		{
 			unsigned char temp = 0;
 			file.read( (char*)&temp, sizeof(temp) );
 			dataSet(temp, i) = 1;
-			if (j * numberOfImages / 100 <= i)
-			{
-                cout << "*" << flush;
-				j++;
-			}
+			cout << "\r" << floor(i / (float) numberOfImages * 100) << "%";
 		}
-		cout << "100%" << endl;
+		cout << "\r" << "100%" << endl;
 	}
 	file.close();
 	return dataSet;
@@ -104,47 +97,43 @@ EigenMatrix readMNISTLabels(const integer &nbExamples)
 
 void readMLP(const string &input, MLP &mlp)
 {
-	std::ifstream file(input, ios::in);
+	ifstream file(input, ios::binary);
 	if ( file.is_open() )
 	{
-		vector<integer> structure;
-		string str, svalue;
+		cout << "loading mlp..." << endl;
+		integer size;
+		file.read( (char*) &size, is );
+		vector<integer> structure(size);
+		for (integer i = 0; i != size; ++i)
+			file.read( (char*) &structure[i], is );
 
-		getline(file, str, '#');
-		str = str.substr( 0, str.find("\n", 0) );
-		integer i = 0, j = str.find(",", 0);
-		svalue = str.substr(i, j - i);
-		structure.push_back( stoi(svalue) );
-		do
+		arrayOfLayers layers(structure);
+		integer rows, cols;
+
+		/* --sert juste pour le %--- */
+		vector<integer> sum(size);
+		sum[0] = 0;
+		for (integer i = 1; i != size; ++i)
+			sum[i] = sum[i - 1] + (structure[i - 1] + 1) * structure[i];
+		/* ------------------------- */
+
+		for (integer i = 0; i != size - 1; ++i)
 		{
-			i = j + 1;
-			j = str.find(",", i);
-			svalue = str.substr(i, j - i);
-			structure.push_back( stoi(svalue) );
-		}
-		while (j != string::npos);
-
-
-        arrayOfLayers layers(structure);
-		istringstream matrix, line;
-		string smatrix, sline, scoeff;
-
-		while ( getline(file, smatrix, '#') )
-		{
-			matrix.str(smatrix);
-			i = 0;
-			j = 0;
-			while ( getline(matrix, sline, '\n') )
+			EigenMatrix &mat = layers[i];
+			rows = mat.rows();
+			cols = mat.cols();
+			for (integer r = 0; r != rows; ++r)
 			{
-				line.str(sline);
-				while ( getline(line, scoeff, ',') )
+				for (integer c = 0; c != cols; ++c)
 				{
-					layers[i](i, j) = stoi(scoeff);
-					++j;
+					float value = 0;
+					file.read( (char*) &value, fs );
+					mat(r, c) = value;
 				}
-				++i;
+				cout << "\r" << floor( (sum[i] + r * rows) / (float) sum[size - 1] * 100 ) << "%";
 			}
 		}
+		cout << "\r" << "100%" << endl;
 
 		mlp.set(layers);
 		file.close();
@@ -154,47 +143,43 @@ void readMLP(const string &input, MLP &mlp)
 
 void writeMLP(const string &output, const MLP &mlp)
 {
-	std::ofstream file(output, ios::out | ios::trunc);
+	ofstream file(output, ios::binary);
+
 	if ( file.is_open() )
 	{
-        cout << "saving mlp:" << endl;
-        const vector<integer> structure = mlp.getStructure();
-		string str = to_string(structure[0]);
-		for (integer i = 1; i < structure.size(); ++i)
-			str += "," + to_string(structure[i]);
-		str += "\n";
-		file.write( str.c_str(), sizeof(char) * str.size() );
-		str.clear();
+		cout << "saving mlp..." << endl;
+		const vector<integer> structure = mlp.getStructure();
+		const integer size = structure.size();
+		file.write( (char*) &size, is );
+		for (integer i = 0; i != size; ++i)
+			file.write( (char*) &structure[i], is );
 
-        const arrayOfLayers layers = mlp.get();
+		/* --sert juste pour le %--- */
+		vector<integer> sum(size);
+		sum[0] = 0;
+		for (integer i = 1; i != size; ++i)
+			sum[i] = sum[i - 1] + (structure[i - 1] + 1) * structure[i];
+		/* ------------------------- */
 
+		const arrayOfLayers layers = mlp.get();
 		integer rows, cols;
 		for (integer i = 0; i <= layers.last(); ++i)
 		{
-			rows = layers[i].rows();
-			cols = layers[i].cols();
-			str += "#";
-			for (integer r = 0; r < rows; ++r)
+			const EigenMatrix &mat = layers[i];
+			rows = mat.rows();
+			cols = mat.cols();
+			int j = 1;
+			for (integer r = 0; r != rows; ++r)
 			{
-				str +=  to_string( layers[i](r, 0) );
-				for (integer c = 1; c < cols; ++c)
+				for (integer c = 0; c != cols; ++c)
 				{
-					str += "," + to_string( layers[i](r, c) );
+					file.write( (char*) &mat(r, c), fs );
 				}
-				str += "\n";
-
-				file.write( str.c_str(), sizeof(char) * str.size() );
-				str.clear();
-
-				int j = 1;
-				if (j * rows / 100 <= i)
-				{
-                    cout << "*" << flush;
-					j++;
-				}
+				cout << "\r" << floor( (sum[i] + r * rows) / (float) sum[size - 1] * 100 ) << "%";
 			}
-			cout << "100%" << endl;
 		}
+		cout << "\r" << "100%" << endl;
+
 		file.close();
 	}
 }
