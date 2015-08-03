@@ -17,11 +17,11 @@ int reverseInt(int i)
 }
 
 
-EigenMatrix readMNISTPics(const integer &nbExamples)
+EigenMatrix readMNISTPics(const string &fileloc, const integer &nbExamples)
 {
 	EigenMatrix dataSet;
 
-	ifstream file("/home/leonard/MNIST/trainImages", ios::binary);
+    ifstream file(fileloc, ios::binary);
 	if ( file.is_open() )
 	{
 		cout << "loading images..." << endl;
@@ -61,11 +61,11 @@ EigenMatrix readMNISTPics(const integer &nbExamples)
 }
 
 
-EigenMatrix readMNISTLabels(const integer &nbExamples)
+EigenMatrix readMNISTLabels(const string &fileloc, const integer &nbExamples)
 {
 	EigenMatrix dataSet;
 
-	ifstream file("/home/leonard/MNIST/trainLabels", ios::binary);
+    ifstream file(fileloc, ios::binary);
 	if ( file.is_open() )
 	{
 		cout << "loading labels..." << endl;

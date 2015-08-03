@@ -7,13 +7,13 @@ using namespace std;
 
 bool adr = 0;
 realnumber mT = 10, lR = 0.001;
-string input, output = "./out.mlp";
+string input, output = "./out.mlp", dataImage = "/home/leonard/MNIST/trainImages", dataLabel = "/home/leonard/MNIST/trainLabels";
 integer nbExamples = 2000;
 
 void arguments(int argc, char* argv[])
 {
 	integer opt;
-	while ( ( opt = getopt(argc, argv, "at:l:i:o:e:") ) != -1 )
+    while ( ( opt = getopt(argc, argv, "at:r:i:o:e:d:l:") ) != -1 )
 	{
 		switch (opt)
 		{
@@ -23,7 +23,7 @@ void arguments(int argc, char* argv[])
 		case 't':
 			mT = atof(optarg);
 			break;
-		case 'l':
+        case 'r':
 			lR = atof(optarg);
 			break;
 		case 'i':
@@ -32,6 +32,12 @@ void arguments(int argc, char* argv[])
 		case 'o':
 			output = optarg;
 			break;
+        case 'd':
+            dataImage = optarg;
+            break;
+        case 'l':
+            dataLabel = optarg;
+            break;
 		case 'e':
 			nbExamples = atoi(optarg);
 			break;
@@ -48,7 +54,7 @@ int main(int argc, char* argv[])
 
 	MLP mlp;
 
-	learningData data( readMNISTPics(nbExamples), readMNISTLabels(nbExamples) );
+    learningData data( readMNISTPics(dataImage, nbExamples), readMNISTLabels(dataLabel, nbExamples) );
 
 	mlp.setLearningData(data);
 	learningParameters parameters;
