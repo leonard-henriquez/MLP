@@ -138,7 +138,7 @@ void readMLP(const string &input, MLP &mlp)
 		}
 		cout << "\r" << "100%" << endl;
 
-		mlp.set(layers);
+        mlp.restoreWeights(layers);
 		file.close();
 	}
 }

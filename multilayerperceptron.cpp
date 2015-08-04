@@ -54,28 +54,22 @@ bool MLP::isSet() const
 }
 
 
-void MLP::set(const arrayOfLayers &futurLayers)
-{
-	layers = futurLayers;
-}
-
-
 arrayOfLayers MLP::get() const
 {
 	return layers;
 }
 
 
-void MLP::setStructure(const vector<integer> &str, const initialise &init, const resetOrNot &overrideIfAlreadySet)
+void MLP::setStructure(const vector<integer> &str, const initialise &init, const resetOrNot &override)
 {
-	if (isSet() && overrideIfAlreadySet == RESET)
+    if (isSet() && override == RESET)
 	{
 		clear();
 	}
 
-	if (!isSet() || overrideIfAlreadySet == RESET)
+    if (!isSet() || override == RESET)
 	{
-		layers.set(str);
+        layers.set(str);
 	}
 
 	if (init == INIT)
@@ -109,7 +103,6 @@ learningData MLP::getLearningData() const
 	return io;
 }
 
-
 void MLP::gradientDescent(learningParameters &parameters)
 // learn permet de réaliser l'apprentissage du MLP
 {
@@ -136,7 +129,7 @@ void MLP::gradientDescent(learningParameters &parameters)
  * LR = LEARNING_RATE
  * ALR = ADAPTATIVELR (adaptative learning rate)
  */
-
+    srand(0);
 	if ( isSet() )
 	{
 		integer index;
@@ -200,7 +193,7 @@ realnumber MLP::weightCost(const learningParameters &parameters) const
 void MLP::modifyWeights(const learningParameters &parameters, const integer &exampleIndex, arrayOfLayers &delta)
 {
 	modifyDelta(io.getInput(exampleIndex), io.getOutput(exampleIndex), 0, delta);
-	for (integer j = layers.last(); j > 0; --j)
+    for (integer j = layers.last(); j != 0; --j)
 	{
 		layers[j] +=
 		    parameters.learningRate
@@ -321,7 +314,7 @@ void MLP::setActivationFunction(integer i)
 void MLP::weightDecay(const learningParameters &parameters)
 {
 	integer rows, cols, j;
-	for (j = 0; j < layers.last(); ++j)
+    for (j = 0; j != layers.last(); ++j)
 	{
 		rows = layers[j].rows();
 		cols = layers[j].cols();
@@ -346,19 +339,13 @@ void MLP::weightDecay(const learningParameters &parameters)
 
 void MLP::saveWeights(arrayOfLayers &layers_backup) const
 {
-	for (integer j = 0; j <= layers.last(); ++j)
-	{
-		layers_backup[j] = layers[j];
-	}
+    layers_backup = layers;
 }
 
 
 void MLP::restoreWeights(const arrayOfLayers &layers_backup)
 {
-	for (integer j = 0; j <= layers.last(); ++j)
-	{
-		layers[j] = layers_backup[j];
-	}
+    layers = layers_backup;
 }
 
 
@@ -396,6 +383,89 @@ bool MLP::displayMQE(learningParameters &parameters) const
 		return 0;
 	}
 }
+
+
+
+
+
+/***************************************************** ITERATIVE VERSION ***************************************************/
+
+
+void MLP::gradientDescentIter(learningParameters &parameters)
+// learn permet de réaliser l'apprentissage du MLP
+{
+    srand(0);
+    if ( isSet() )
+    {
+        integer index, j;
+        parameters.iteration = 0;
+        parameters.nextDisplayTime = 0;
+        parameters.mqe = MQE(parameters);
+        parameters.startingTime = clock();
+        arrayOfLayers layers_backup = layers, delta;
+        delta.resize( layers.size() );
+        for (int j = 0; j <= layers.last(); ++j)
+        {
+            delta[j].resize(layers[j].rows(), 1);
+        }
+        EigenVector yj, yo;
+
+
+        displayInfo(parameters);
+        display("learning starting...");
+
+        while (parameters.mqe > parameters.maxError && (clock() - parameters.startingTime) * CLOCKS_PER_SEC_INV < parameters.maxTime)
+        {
+            displayMQE(parameters);
+
+            index = rand() % io.examples(); // ATTENTION! A améliorer
+
+            saveWeights(layers_backup);
+            weightDecay(parameters);
+
+            j = layers.last();
+            yj = io.getInput(index);
+            yo = io.getOutput(index);
+            delta[j] =
+                    activation(layers[j], yj, func.derivativeActivation).asDiagonal()
+                    * ( yo - activation(layers[j], yj, func.activation) );
+            for (--j; j >= 0; --j)
+            delta[j] =
+                    activation(layers[j], yj, func.derivativeActivation).asDiagonal()
+                    * layers[j + 1].block(0, 0, layers[j + 1].rows(), layers[j + 1].cols() - 1).transpose()
+                    * delta[j + 1];
+
+            for (j = layers.last(); j > 0; --j)
+            {
+                layers[j] +=
+                        parameters.learningRate
+                        * delta[j]
+                        * addBias( run(index, j - 1) ).transpose();
+            }
+            layers[0] +=
+                    parameters.learningRate
+                    * delta[0]
+                    * addBias( io.getInput(index) ).transpose();
+
+
+            modifyLearningRate(parameters, layers_backup);
+            parameters.iteration++;
+        }
+
+        display("learning finished! \n");
+        display("Iterations: " + to_string( int(parameters.iteration) ) + "; Temps en secondes :  " + to_string( (clock() - parameters.startingTime) * CLOCKS_PER_SEC_INV ) + "");
+        displayInfo(parameters);
+    }
+}
+
+
+
+
+
+
+
+
+
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *

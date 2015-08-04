@@ -69,9 +69,15 @@ int main(int argc, char* argv[])
 
     cout << endl;
 
+    arrayOfLayers backup;
+    mlp.saveWeights(backup);
+    learningParameters back(parameters);
 	mlp.gradientDescent(parameters);
+    mlp.restoreWeights(backup);
+    cout << "\n\nRestart (iter)\n" << endl;
+    mlp.gradientDescent(back);
 
-	writeMLP(output, mlp);
+//	writeMLP(output, mlp);
 
 	return 0;
 }
