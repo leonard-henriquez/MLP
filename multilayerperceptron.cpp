@@ -458,16 +458,6 @@ void MLP::gradientDescentIter(learningParameters &parameters)
     }
 }
 
-
-
-
-
-
-
-
-
-
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                                                                           *
 *                                                   RECUIT SIMULE                                                           *
