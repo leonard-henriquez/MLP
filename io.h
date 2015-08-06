@@ -21,39 +21,39 @@ EigenMatrix readMNISTPics(const string &fileloc, const int &nbExamples)
 {
 	EigenMatrix dataSet;
 
-    ifstream file(fileloc, ios::binary);
+	ifstream file(fileloc, ios::binary);
 	if ( file.is_open() )
 	{
 		cout << "loading images..." << endl;
 
 		int magicNumber = 0, numberOfImages = 0, nbRows = 0, nbCols = 0;
-		file.read( (char*)&magicNumber, sizeof(magicNumber) );
+		file.read( (char*)&magicNumber,	   sizeof(magicNumber) );
 		magicNumber = reverseInt(magicNumber);
 		file.read( (char*)&numberOfImages, sizeof(numberOfImages) );
 		numberOfImages = reverseInt(numberOfImages);
-		file.read( (char*)&nbRows, sizeof(nbRows) );
+		file.read( (char*)&nbRows,		   sizeof(nbRows) );
 		nbRows = reverseInt(nbRows);
-		file.read( (char*)&nbCols, sizeof(nbCols) );
+		file.read( (char*)&nbCols,		   sizeof(nbCols) );
 		nbCols = reverseInt(nbCols);
 
-        numberOfImages = min(nbExamples, 60000);
-        float percent = 1 / (float) numberOfImages * 100;
+		numberOfImages = min(nbExamples, 60000);
+		float percent = 1 / (float) numberOfImages * 100;
 
 		dataSet.resize(nbRows * nbCols, numberOfImages);
 
 		int j = 1;
-        for (int i = 0; i != numberOfImages; ++i)
+		for (int i = 0; i != numberOfImages; ++i)
 		{
-            for (int r = 0; r != nbRows; ++r)
+			for (int r = 0; r != nbRows; ++r)
 			{
-                for (int c = 0; c != nbCols; ++c)
+				for (int c = 0; c != nbCols; ++c)
 				{
 					unsigned char temp = 0;
 					file.read( (char*)&temp, sizeof(temp) );
 					dataSet(nbRows * r + c, i) = temp;
 				}
 			}
-            cout << "\r" << floor(i * percent) << "%";
+			cout << "\r" << floor(i * percent) << "%";
 		}
 		cout << "\r" << "100%" << endl;
 	}
@@ -66,29 +66,29 @@ EigenMatrix readMNISTLabels(const string &fileloc, const int &nbExamples)
 {
 	EigenMatrix dataSet;
 
-    ifstream file(fileloc, ios::binary);
+	ifstream file(fileloc, ios::binary);
 	if ( file.is_open() )
 	{
 		cout << "loading labels..." << endl;
 
 		int magicNumber = 0, numberOfImages = 0;
-		file.read( (char*)&magicNumber, sizeof(magicNumber) );
+		file.read( (char*)&magicNumber,	   sizeof(magicNumber) );
 		magicNumber = reverseInt(magicNumber);
 		file.read( (char*)&numberOfImages, sizeof(numberOfImages) );
 		numberOfImages = reverseInt(numberOfImages);
 
-        numberOfImages = min(nbExamples, 60000);
-        float percent = 1 / (float) numberOfImages * 100;
+		numberOfImages = min(nbExamples, 60000);
+		float percent = 1 / (float) numberOfImages * 100;
 
 		dataSet = -EigenMatrix::Ones(10, numberOfImages);
 
 		int j = 1;
-        for (int i = 0; i != numberOfImages; ++i)
+		for (int i = 0; i != numberOfImages; ++i)
 		{
 			unsigned char temp = 0;
 			file.read( (char*)&temp, sizeof(temp) );
 			dataSet(temp, i) = 1;
-            cout << "\r" << floor(i * percent) << "%";
+			cout << "\r" << floor(i * percent) << "%";
 		}
 		cout << "\r" << "100%" << endl;
 	}
@@ -117,7 +117,7 @@ void readMLP(const string &input, MLP &mlp)
 		sum[0] = 0;
 		for (integer i = 1; i != size; ++i)
 			sum[i] = sum[i - 1] + (structure[i - 1] + 1) * structure[i];
-        float percent = 1 / (float) sum[size - 1] * 100;
+		float percent = 1 / (float) sum[size - 1] * 100;
 		/* ------------------------- */
 
 		for (integer i = 0; i != size - 1; ++i)
@@ -133,7 +133,7 @@ void readMLP(const string &input, MLP &mlp)
 					file.read( (char*) &value, fs );
 					mat(r, c) = value;
 				}
-                cout << "\r" << floor( (sum[i] + r * rows) * percent ) << "%";
+				cout << "\r" << floor( (sum[i] + r * rows) * percent ) << "%";
 			}
 		}
 		cout << "\r" << "100%" << endl;
@@ -162,7 +162,7 @@ void writeMLP(const string &output, const MLP &mlp)
 		sum[0] = 0;
 		for (integer i = 1; i != size; ++i)
 			sum[i] = sum[i - 1] + (structure[i - 1] + 1) * structure[i];
-        float percent = 1 / (float) sum[size - 1] * 100;
+		float percent = 1 / (float) sum[size - 1] * 100;
 		/* ------------------------- */
 
 		const arrayOfLayers layers = mlp.get();
@@ -179,7 +179,7 @@ void writeMLP(const string &output, const MLP &mlp)
 				{
 					file.write( (char*) &mat(r, c), fs );
 				}
-                cout << "\r" << floor( (sum[i] + r * rows) * percent ) << "%";
+				cout << "\r" << floor( (sum[i] + r * rows) * percent ) << "%";
 			}
 		}
 		cout << "\r" << "100%" << endl;
@@ -189,4 +189,4 @@ void writeMLP(const string &output, const MLP &mlp)
 }
 
 
-#endif // IO
+#endif	// IO
