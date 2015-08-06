@@ -12,7 +12,7 @@ using namespace Eigen;
 using namespace std;
 typedef long long int integer;
 typedef double realnumber;
-typedef array<realnumber, 3> tab3;
+typedef array<realnumber, 3> decayArray;
 typedef vector<realnumber> STLVector;
 typedef Matrix<realnumber, Dynamic, 1> EigenVector;
 typedef Matrix<realnumber, Dynamic, Dynamic> EigenMatrix;
@@ -97,16 +97,25 @@ inline EigenMatrix activation( const EigenMatrix &weights, const EigenMatrix &in
 }
 
 
+/******************************************************* display function ***********************************************************/
+
+
 inline void display(const string & str)
 {
 	cout << str << endl;
 }
 
 
-class arrayOfLayers : private vector<EigenMatrix>
+/****************************************************** vector of matrices **********************************************************/
+
+
+class layerType : private vector<EigenMatrix>
 {
+
 public:
-	arrayOfLayers( const vector<integer> &structure = vector<integer>() ) : vector<EigenMatrix>(), _size(0), _last(-1)
+	layerType(const integer &size) : vector<EigenMatrix>(size), _size(size), _last(size - 1) {}
+
+	layerType( const vector<integer> &structure = vector<integer>() ) : vector<EigenMatrix>(), _size(0), _last(-1)
 	{
 		set(structure);
 	}
@@ -114,7 +123,7 @@ public:
 	{
 		if (structure.size() > 1)
 		{
-			arrayOfLayers::resize(structure.size() - 1);
+			layerType::resize(structure.size() - 1);
 			for (integer i = 0; i < size(); ++i)
 				at(i).resize(structure[i + 1], structure[i] + 1);
 		}
@@ -149,9 +158,9 @@ public:
 	{
 		return _last;
 	}
-	arrayOfLayers& operator =(const arrayOfLayers &other)
+	layerType& operator =(const layerType &other)
 	{
-		arrayOfLayers::resize( other.size() );
+		layerType::resize( other.size() );
 		for (integer i = 0; i < _size; ++i)
 			vector<EigenMatrix>::operator [](i) = other[i];
 		return *this;
@@ -169,6 +178,37 @@ private:
 	integer _last;
 };
 
+class deltaType : private vector<EigenMatrix>
+{
+
+public:
+	deltaType(const layerType &layers) : vector<EigenMatrix>( layers.size() )
+	{
+		for (integer i = 0; i <= layers.last(); ++i)
+		{
+			vector<EigenMatrix>::operator [](i).resize(layers[i].rows(), 1);
+		}
+	}
+	deltaType& operator =(const deltaType &other)
+	{
+		vector<EigenMatrix>::resize( other.vector<EigenMatrix>::size() );
+		for (integer i = 0; i < vector<EigenMatrix>::size(); ++i)
+			vector<EigenMatrix>::operator [](i) = other[i];
+		return *this;
+	}
+	EigenMatrix& operator [](integer i)
+	{
+		return vector<EigenMatrix>::operator [](i);
+	}
+	EigenMatrix const operator [](integer i) const
+	{
+		return at(i);
+	}
+};
+
+
+/****************************************************** learning functions **********************************************************/
+
 
 struct functions
 {
@@ -179,6 +219,27 @@ struct functions
 
 	realnumber (*activation)(realnumber const&);
 	realnumber (*derivativeActivation)(realnumber const&);
+};
+
+
+/****************************************************** learning parameters *********************************************************/
+
+
+union universalClass
+{
+
+	struct gD
+	{
+		gD( layerType layers = layerType() ) : backup(layers), delta( deltaType(layers) ) {}
+		layerType backup;
+		deltaType delta;
+	};
+
+	universalClass() : gradientDescent() {}
+	~universalClass() {}
+
+	gD gradientDescent;
+
 };
 
 
@@ -196,7 +257,8 @@ struct learningParameters
 		adaptativeLearningRate(ALR),
 		lambda({
 		{L0, L1, L2}
-	})
+	}),
+		algorithmSpecific()
 	{}
 
 	int iteration;
@@ -208,8 +270,12 @@ struct learningParameters
 	realnumber maxTime;
 	realnumber learningRate;
 	bool adaptativeLearningRate;
-	tab3 lambda;
+	decayArray lambda;
+	universalClass algorithmSpecific;
 };
+
+
+/********************************************************* learning data ************************************************************/
 
 
 class learningData

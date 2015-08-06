@@ -17,8 +17,8 @@ public:
 	MLP (const MLP &other);
 	virtual ~MLP();
 	bool isSet () const;
-	void set (const arrayOfLayers &futurLayers);
-	arrayOfLayers get () const;
+	void restoreWeights (const layerType &layers_backup);
+	layerType get () const;
 	void setStructure (const vector<integer> &str, const initialise &init = INIT, const resetOrNot &overrideIfAlreadySet = RESET);
 	vector<integer> getStructure () const;
 	void setActivationFunction (integer i);	// 0 sig, 1 tanh
@@ -38,19 +38,20 @@ protected:
 	void clone (const MLP &);
 	void clear ();
 
+	void saveWeights (learningParameters &parameters) const;
+	void restoreWeights (const learningParameters &parameters);
+
 	virtual bool displayMQE (learningParameters &parameters) const;
 
 	// apprentissage
 	void weightDecay (const learningParameters &parameters);
 	realnumber weightCost (const learningParameters &parameters) const;
-	EigenVector modifyDelta (const EigenVector &yj, const EigenVector &output, const integer &exampleIndex, arrayOfLayers &delta);
-	void modifyWeights (const learningParameters &data, const integer &exampleIndex, arrayOfLayers &delta);
-	void modifyLearningRate (learningParameters &data, const arrayOfLayers &layers_backup);
-	void saveWeights (arrayOfLayers &layers_backup) const;
-	void restoreWeights (const arrayOfLayers &layers_backup);
+	EigenVector modifyDelta (learningParameters &parameters, const EigenVector &yj, const EigenVector &yo, const integer &layer);
+	void modifyWeights (learningParameters &parameters, const integer &exampleIndex);
+	void modifyLearningRate (learningParameters &parameters);
 
 	// structure du MLP
-	arrayOfLayers layers;
+	layerType layers;
 	functions func;
 
 	// données entres/sorties

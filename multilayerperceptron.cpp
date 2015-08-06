@@ -54,13 +54,7 @@ bool MLP::isSet() const
 }
 
 
-void MLP::set(const arrayOfLayers &futurLayers)
-{
-	layers = futurLayers;
-}
-
-
-arrayOfLayers MLP::get() const
+layerType MLP::get() const
 {
 	return layers;
 }
@@ -144,12 +138,7 @@ void MLP::gradientDescent(learningParameters &parameters)
 		parameters.nextDisplayTime = 0;
 		parameters.mqe = MQE(parameters);
 		parameters.startingTime = clock();
-		arrayOfLayers layers_backup = layers, delta;
-		delta.resize( layers.size() );
-		for (integer j = 0; j <= layers.last(); ++j)
-		{
-			delta[j].resize(layers[j].rows(), 1);
-		}
+		parameters.algorithmSpecific.gradientDescent = universalClass::gD(layers);
 
 		io.shuffle();
 
@@ -167,12 +156,12 @@ void MLP::gradientDescent(learningParameters &parameters)
 
 			index = rand() % io.learningExamples();	// ATTENTION! A améliorer
 
-			saveWeights(layers_backup);
+			saveWeights(parameters);
 			weightDecay(parameters);
-			modifyWeights(parameters, index, delta);
+			modifyWeights(parameters, index);
 
 			// on vérifie s'ils sont meilleurs que les anciens, sinon on revient en arrière
-			modifyLearningRate(parameters, layers_backup);
+			modifyLearningRate(parameters);
 			parameters.iteration++;
 		}
 
@@ -183,70 +172,52 @@ void MLP::gradientDescent(learningParameters &parameters)
 }
 
 
-realnumber MLP::weightCost(const learningParameters &parameters) const
+void MLP::modifyWeights(learningParameters &parameters, const integer &exampleIndex)
 {
-	realnumber sum = 0;
-	if ( parameters.lambda != tab3() )
-	{
-		integer j = layers.last();
-		sum += parameters.lambda[1] * norm2( layers[j].block(0, 0, layers[j].rows(), layers[j].cols() - 1) );
-		sum += parameters.lambda[2] * norm2( layers[j].block(0, layers[j].cols() - 1, layers[j].rows(), 1) );
-		for (--j; j >= 0; --j)
-		{
-			sum += parameters.lambda[0] * norm2( layers[j].block(0, 0, layers[j].rows(), layers[j].cols() - 1) );
-			sum += parameters.lambda[2] * norm2( layers[j].block(0, layers[j].cols() - 1, layers[j].rows(), 1) );
-		}
-	}
-	return sum;
-}
-
-
-void MLP::modifyWeights(const learningParameters &parameters, const integer &exampleIndex, arrayOfLayers &delta)
-{
-	modifyDelta(io.getInput(exampleIndex), io.getOutput(exampleIndex), 0, delta);
+	modifyDelta(parameters, io.getInput(exampleIndex), io.getOutput(exampleIndex), 0);
 	for (integer j = layers.last(); j > 0; --j)
 	{
 		layers[j] +=
 			parameters.learningRate
-			* delta[j]
+			* parameters.algorithmSpecific.gradientDescent.delta[j]
 			* addBias( run(exampleIndex, j - 1) ).transpose();
 	}
 	layers[0] +=
 		parameters.learningRate
-		* delta[0]
+		* parameters.algorithmSpecific.gradientDescent.delta[0]
 		* addBias( io.getInput(exampleIndex) ).transpose();
 }
 
 
-EigenVector MLP::modifyDelta(EigenVector const &yj, EigenVector const &yo, integer const & layer, arrayOfLayers &delta)
+EigenVector MLP::modifyDelta(learningParameters &parameters, const EigenVector &yj, const EigenVector &yo, const integer &layer)
 // yo = desiredOutput
 {
 	if ( layer == layers.last() )
 	{
-		delta[layer] =
+		parameters.algorithmSpecific.gradientDescent.delta[layer] =
 			activation(layers[layer], yj, func.derivativeActivation).asDiagonal()
 			* ( yo - activation(layers[layer], yj, func.activation) );
 	}
 	else
 	{
-		delta[layer] =
+		parameters.algorithmSpecific.gradientDescent.delta[layer] =
 			activation(layers[layer], yj, func.derivativeActivation).asDiagonal()
 			* layers[layer + 1].block(0, 0, layers[layer + 1].rows(), layers[layer + 1].cols() - 1).transpose()
-			* modifyDelta(activation(layers[layer], yj, func.activation), yo, layer + 1, delta);
+			* modifyDelta(parameters, activation(layers[layer], yj, func.activation), yo, layer + 1);
 	}
 
-	return delta[layer];
+	return parameters.algorithmSpecific.gradientDescent.delta[layer];
 }
 
 
-void MLP::modifyLearningRate(learningParameters &parameters, const arrayOfLayers &layers_backup)
+void MLP::modifyLearningRate(learningParameters &parameters)
 {
 	realnumber newmqe = MQE(parameters);
 	if (parameters.adaptativeLearningRate)
 	{
 		if (newmqe > ( 1 + 0.03 / io.examples() ) * parameters.mqe)
 		{
-			restoreWeights(layers_backup);
+			restoreWeights(parameters);
 			parameters.learningRate *= 0.97;
 		}
 		else if (newmqe < ( 1 + 0.02 / io.examples() ) * parameters.mqe)
@@ -289,6 +260,50 @@ EigenMatrix MLP::run(const integer &exampleIndex, const integer &layer) const
 }
 
 
+void MLP::weightDecay(const learningParameters &parameters)
+{
+    integer rows, cols, j;
+    for (j = 0; j < layers.last(); ++j)
+    {
+        rows = layers[j].rows();
+        cols = layers[j].cols();
+        layers[j].block(0, 0, rows, cols - 1) =
+            (1 - parameters.lambda[0])
+            * layers[j].block(0, 0, rows, cols - 1);
+        layers[j].block(0, cols - 1, rows, 1) =
+            (1 - parameters.lambda[2])
+            * layers[j].block(0, cols - 1, rows, 1);
+    }
+    j = layers.last();
+    rows = layers[j].rows();
+    cols = layers[j].cols();
+    layers[j].block(0, 0, rows, cols - 1) =
+        (1 - parameters.lambda[1])
+        * layers[j].block(0, 0, rows, cols - 1);
+    layers[j].block(0, cols - 1, rows, 1) =
+        (1 - parameters.lambda[2])
+        * layers[j].block(0, cols - 1, rows, 1);
+}
+
+
+realnumber MLP::weightCost(const learningParameters &parameters) const
+{
+    realnumber sum = 0;
+    if ( parameters.lambda != decayArray() )
+    {
+        integer j = layers.last();
+        sum += parameters.lambda[1] * norm2( layers[j].block(0, 0, layers[j].rows(), layers[j].cols() - 1) );
+        sum += parameters.lambda[2] * norm2( layers[j].block(0, layers[j].cols() - 1, layers[j].rows(), 1) );
+        for (--j; j >= 0; --j)
+        {
+            sum += parameters.lambda[0] * norm2( layers[j].block(0, 0, layers[j].rows(), layers[j].cols() - 1) );
+            sum += parameters.lambda[2] * norm2( layers[j].block(0, layers[j].cols() - 1, layers[j].rows(), 1) );
+        }
+    }
+    return sum;
+}
+
+
 realnumber MLP::MQE(const learningParameters &parameters, const learningValidationOrTest &lvt) const
 // renvoie l'erreur quadratique moyenne
 {
@@ -307,10 +322,28 @@ realnumber MLP::MQE(const learningParameters &parameters, const learningValidati
 		i = io.learningExamples() + io.validationExamples() + 1;
 		j = io.examples();
 	}
-    if ( i >= j || j > io.examples() )
+	if ( i >= j || j > io.examples() )
 		return 0;
 
 	return ( norm( run() - io.getOutput().block(0, i, io.outputs(), j) ) + weightCost(parameters) ) / 2;
+}
+
+
+void MLP::saveWeights(learningParameters &parameters) const
+{
+    parameters.algorithmSpecific.gradientDescent.backup = layers;
+}
+
+
+void MLP::restoreWeights(const learningParameters &parameters)
+{
+    layers = parameters.algorithmSpecific.gradientDescent.backup;
+}
+
+
+void MLP::restoreWeights(const layerType &layers_backup)
+{
+    layers = layers_backup;
 }
 
 
@@ -334,50 +367,6 @@ void MLP::setActivationFunction(integer i)
 }
 
 
-void MLP::weightDecay(const learningParameters &parameters)
-{
-	integer rows, cols, j;
-	for (j = 0; j < layers.last(); ++j)
-	{
-		rows = layers[j].rows();
-		cols = layers[j].cols();
-		layers[j].block(0, 0, rows, cols - 1) =
-			(1 - parameters.lambda[0])
-			* layers[j].block(0, 0, rows, cols - 1);
-		layers[j].block(0, cols - 1, rows, 1) =
-			(1 - parameters.lambda[2])
-			* layers[j].block(0, cols - 1, rows, 1);
-	}
-	j = layers.last();
-	rows = layers[j].rows();
-	cols = layers[j].cols();
-	layers[j].block(0, 0, rows, cols - 1) =
-		(1 - parameters.lambda[1])
-		* layers[j].block(0, 0, rows, cols - 1);
-	layers[j].block(0, cols - 1, rows, 1) =
-		(1 - parameters.lambda[2])
-		* layers[j].block(0, cols - 1, rows, 1);
-}
-
-
-void MLP::saveWeights(arrayOfLayers &layers_backup) const
-{
-	for (integer j = 0; j <= layers.last(); ++j)
-	{
-		layers_backup[j] = layers[j];
-	}
-}
-
-
-void MLP::restoreWeights(const arrayOfLayers &layers_backup)
-{
-	for (integer j = 0; j <= layers.last(); ++j)
-	{
-		layers[j] = layers_backup[j];
-	}
-}
-
-
 void MLP::displayInfo(const learningParameters &parameters) const
 // affiche les informations sur le MLP
 {
@@ -391,7 +380,7 @@ void MLP::displayInfo(const learningParameters &parameters) const
 	string str;
 
 	str +=   "MQE = "                     +   to_string(parameters.mqe)               + "\n";
-    str +=   "Examples = "                +   to_string(io.examples())               + "\n";
+	str +=   "Examples = "                +   to_string( io.examples() )               + "\n";
 	str +=   "cost of weights = "         +   to_string(weightCost(parameters) / 2)      + "\n";
 	str +=   "max weight = "              +   to_string(maxCoeff)            + "\n";
 	str +=   "mean of abs weights = "     +   to_string( mean / io.examples() ) + "\n";

@@ -109,7 +109,7 @@ void readMLP(const string &input, MLP &mlp)
 		for (integer i = 0; i != size; ++i)
 			file.read( (char*) &structure[i], is );
 
-		arrayOfLayers layers(structure);
+		layerType layers(structure);
 		integer rows, cols;
 
 		/* --sert juste pour le %--- */
@@ -138,7 +138,7 @@ void readMLP(const string &input, MLP &mlp)
 		}
 		cout << "\r" << "100%" << endl;
 
-		mlp.set(layers);
+		mlp.restoreWeights(layers);
 		file.close();
 	}
 }
@@ -165,7 +165,7 @@ void writeMLP(const string &output, const MLP &mlp)
 		float percent = 1 / (float) sum[size - 1] * 100;
 		/* ------------------------- */
 
-		const arrayOfLayers layers = mlp.get();
+		const layerType layers = mlp.get();
 		integer rows, cols;
 		for (integer i = 0; i <= layers.last(); ++i)
 		{

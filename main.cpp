@@ -24,8 +24,8 @@ void arguments(int argc, char* argv[])
 		{"label", required_argument, NULL, 'l'},
 		{"example", required_argument, NULL, 'e'},
 		{"struct", required_argument, NULL, 's'},
-        {"validation", required_argument, NULL, 'v'},
-        {"test", required_argument, NULL, 'y'},
+		{"validation", required_argument, NULL, 'v'},
+		{"test", required_argument, NULL, 'y'},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -61,12 +61,12 @@ void arguments(int argc, char* argv[])
 		case 's':
 			structure = optarg;
 			break;
-        case 'v':
-            percentOfValidationExamples = atoi(optarg);
-            break;
-        case 'y':
-            percentOfTestExamples = atoi(optarg);
-            break;
+		case 'v':
+			percentOfValidationExamples = atoi(optarg);
+			break;
+		case 'y':
+			percentOfTestExamples = atoi(optarg);
+			break;
 		}
 	}
 }
@@ -88,6 +88,7 @@ int main(int argc, char* argv[])
 	parameters.adaptativeLearningRate = alr;
 	parameters.learningRate = lR;
 	parameters.maxTime = mT;
+	parameters.refreshTime = mT / 100;
 
 	if ( !structure.empty() )
 	{
