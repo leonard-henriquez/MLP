@@ -9,7 +9,7 @@ using namespace std;
 bool alr = 0;
 realnumber mT = 10, lR = 0.001;
 string structure, input, output, dataImage = "/home/leonard/MNIST/trainImages", dataLabel = "/home/leonard/MNIST/trainLabels";
-integer nbExamples = 2000;
+integer nbExamples = 2000, percentOfValidationExamples = 10, percentOfTestExamples = 0;
 
 void arguments(int argc, char* argv[])
 {
@@ -24,6 +24,8 @@ void arguments(int argc, char* argv[])
 		{"label", required_argument, NULL, 'l'},
 		{"example", required_argument, NULL, 'e'},
 		{"struct", required_argument, NULL, 's'},
+        {"validation", required_argument, NULL, 'v'},
+        {"test", required_argument, NULL, 'y'},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -59,6 +61,12 @@ void arguments(int argc, char* argv[])
 		case 's':
 			structure = optarg;
 			break;
+        case 'v':
+            percentOfValidationExamples = atoi(optarg);
+            break;
+        case 'y':
+            percentOfTestExamples = atoi(optarg);
+            break;
 		}
 	}
 }
@@ -73,6 +81,7 @@ int main(int argc, char* argv[])
 	MLP mlp;
 
 	learningData data( readMNISTPics(dataImage, nbExamples), readMNISTLabels(dataLabel, nbExamples) );
+	data.setProportion(percentOfValidationExamples, percentOfTestExamples);
 
 	mlp.setLearningData(data);
 	learningParameters parameters;

@@ -214,17 +214,19 @@ struct learningParameters
 
 class learningData
 {
+
 public:
-	learningData( EigenMatrix I = EigenMatrix(), EigenMatrix O = EigenMatrix() ) :
+	learningData( const EigenMatrix &I = EigenMatrix(), const EigenMatrix &O = EigenMatrix() ) :
 		input(),
 		output(),
 		mean(),
-		sigma(0)
+		sigma(0),
+		nbExamples( min( I.cols(), O.cols() ) ),
+		nbLearningExamples(nbExamples),
+		nbValidationExamples(0),
+		nbTestExamples(0)
 	{
-		setInput(I);
-		setOutput(O);
-		input.resize( input.rows(), examples() );
-		output.resize( output.rows(), examples() );
+		setIO(I, O);
 	}
 	learningData& operator =(const learningData &other)
 	{
@@ -232,7 +234,37 @@ public:
 		output = other.output;
 		mean = other.mean;
 		sigma = other.sigma;
+		nbExamples = other.nbExamples;
+		nbLearningExamples = other.nbLearningExamples;
+		nbValidationExamples = other.nbValidationExamples;
+		nbTestExamples = other.nbTestExamples;
 		return *this;
+	}
+	void shuffle()
+	{
+		PermutationMatrix<Dynamic, Dynamic> perm(nbExamples);
+		perm.setIdentity();
+		std::random_shuffle( perm.indices().data(), perm.indices().data() + perm.indices().size() );
+		input = input * perm;
+		output = output * perm;
+	}
+	void setIO(const EigenMatrix &I, const EigenMatrix &O)
+	{
+		input = I;
+		output = O;
+		input.resize(input.rows(), nbExamples);
+		output.resize(output.rows(), nbExamples);
+
+		resetProportion();
+		mean.resize( input.rows() );
+		for (integer i = 0; i < input.rows(); ++i)
+			mean(i) = input.row(i).sum() / input.cols();
+		EigenMatrix mean_resized = mean * ( EigenVector::Ones( input.cols() ) ).transpose();
+		sigma = sqrt( norm(input - mean_resized) );
+		if (sigma != 0)
+			input = (input - mean_resized) / sigma;
+		else
+			input = EigenMatrix( input.rows(), input.cols() );
 	}
 	EigenMatrix getOriginalInput() const
 	{
@@ -246,19 +278,6 @@ public:
 	{
 		return input.col(i);
 	}
-	void setInput( EigenMatrix I = EigenMatrix() )
-	{
-		input = I;
-		mean.resize( input.rows() );
-		for (integer i = 0; i < input.rows(); ++i)
-			mean(i) = input.row(i).sum() / input.cols();
-		EigenMatrix mean_resized = mean * ( EigenVector::Ones( input.cols() ) ).transpose();
-		sigma = sqrt( norm(input - mean_resized) );
-		if (sigma != 0)
-			input = (input - mean_resized) / sigma;
-		else
-			input = EigenMatrix( input.rows(), input.cols() );
-	}
 	EigenMatrix getOutput() const
 	{
 		return output;
@@ -266,10 +285,6 @@ public:
 	EigenMatrix getOutput(integer i) const
 	{
 		return output.col(i);
-	}
-	void setOutput( EigenMatrix O = EigenMatrix() )
-	{
-		output = O;
 	}
 	EigenMatrix getMean(integer i = 1) const
 	{
@@ -279,9 +294,37 @@ public:
 	{
 		return sigma;
 	}
+	void resetProportion()
+	{
+		nbExamples = min( input.cols(), output.cols() );
+		nbLearningExamples = nbExamples;
+		nbValidationExamples = 0;
+		nbTestExamples = 0;
+	}
+	void setProportion(integer percentV, integer percentT)
+	{
+		if (percentV + percentT <= 100)
+		{
+			nbValidationExamples = floor( (float)percentV * nbExamples / 100 );
+			nbTestExamples = floor( (float)percentT * nbExamples / 100 );
+			nbLearningExamples = nbExamples - nbValidationExamples - nbTestExamples;
+		}
+	}
+	integer validationExamples() const
+	{
+		return nbValidationExamples;
+	}
+	integer testExamples() const
+	{
+		return nbTestExamples;
+	}
+	integer learningExamples() const
+	{
+		return nbLearningExamples;
+	}
 	integer examples() const
 	{
-		return input.cols();
+		return nbExamples;
 	}
 	integer inputs() const
 	{
@@ -296,6 +339,10 @@ private:
 	EigenMatrix output;
 	EigenVector mean;
 	realnumber sigma;
+	integer nbExamples;
+	integer nbLearningExamples;
+	integer nbValidationExamples;
+	integer nbTestExamples;
 };
 
 

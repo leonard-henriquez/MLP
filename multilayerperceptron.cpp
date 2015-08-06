@@ -151,6 +151,7 @@ void MLP::gradientDescent(learningParameters &parameters)
 			delta[j].resize(layers[j].rows(), 1);
 		}
 
+		io.shuffle();
 
 		displayInfo(parameters);
 		display("learning starting...");
@@ -164,7 +165,7 @@ void MLP::gradientDescent(learningParameters &parameters)
 
 			// présente un exemple au hasard pour l'apprendre
 
-			index = rand() % io.examples();	// ATTENTION! A améliorer
+			index = rand() % io.learningExamples();	// ATTENTION! A améliorer
 
 			saveWeights(layers_backup);
 			weightDecay(parameters);
@@ -185,13 +186,16 @@ void MLP::gradientDescent(learningParameters &parameters)
 realnumber MLP::weightCost(const learningParameters &parameters) const
 {
 	realnumber sum = 0;
-	integer j = layers.last();
-	sum += parameters.lambda[1] * norm2( layers[j].block(0, 0, layers[j].rows(), layers[j].cols() - 1) );
-	sum += parameters.lambda[2] * norm2( layers[j].block(0, layers[j].cols() - 1, layers[j].rows(), 1) );
-	for (--j; j >= 0; --j)
+	if ( parameters.lambda != tab3() )
 	{
-		sum += parameters.lambda[0] * norm2( layers[j].block(0, 0, layers[j].rows(), layers[j].cols() - 1) );
+		integer j = layers.last();
+		sum += parameters.lambda[1] * norm2( layers[j].block(0, 0, layers[j].rows(), layers[j].cols() - 1) );
 		sum += parameters.lambda[2] * norm2( layers[j].block(0, layers[j].cols() - 1, layers[j].rows(), 1) );
+		for (--j; j >= 0; --j)
+		{
+			sum += parameters.lambda[0] * norm2( layers[j].block(0, 0, layers[j].rows(), layers[j].cols() - 1) );
+			sum += parameters.lambda[2] * norm2( layers[j].block(0, layers[j].cols() - 1, layers[j].rows(), 1) );
+		}
 	}
 	return sum;
 }
@@ -244,7 +248,6 @@ void MLP::modifyLearningRate(learningParameters &parameters, const arrayOfLayers
 		{
 			restoreWeights(layers_backup);
 			parameters.learningRate *= 0.97;
-			//parameters.learningRate = min( max( parameters.learningRate - realnumber(0.3), realnumber(0.01) ), parameters.learningRate * realnumber(0.7) );
 		}
 		else if (newmqe < ( 1 + 0.02 / io.examples() ) * parameters.mqe)
 		{
@@ -286,20 +289,28 @@ EigenMatrix MLP::run(const integer &exampleIndex, const integer &layer) const
 }
 
 
-realnumber MLP::MQE(const learningParameters &parameters) const
+realnumber MLP::MQE(const learningParameters &parameters, const learningValidationOrTest &lvt) const
 // renvoie l'erreur quadratique moyenne
 {
-	if ( parameters.lambda != tab3() )
+	integer i, j;
+	switch (lvt)
 	{
-		return ( norm( run() - io.getInput() ) + weightCost(parameters) ) / 2;
+	case LEARNING:
+		i = 0;
+		j = io.learningExamples();
+		break;
+	case VALIDATION:
+		i = io.learningExamples() + 1;
+		j = io.learningExamples() + io.validationExamples();
+		break;
+	case TEST:
+		i = io.learningExamples() + io.validationExamples() + 1;
+		j = io.examples();
 	}
-	else
-	{
-		// en fait c'est Tr(tE*E)
-		return norm( run() - io.getOutput() ) / 2;
-	}
-	cout << run() << endl;
-	cout << io.getOutput() << endl;
+    if ( i >= j || j > io.examples() )
+		return 0;
+
+	return ( norm( run() - io.getOutput().block(0, i, io.outputs(), j) ) + weightCost(parameters) ) / 2;
 }
 
 
@@ -380,6 +391,7 @@ void MLP::displayInfo(const learningParameters &parameters) const
 	string str;
 
 	str +=   "MQE = "                     +   to_string(parameters.mqe)               + "\n";
+    str +=   "Examples = "                +   to_string(io.examples())               + "\n";
 	str +=   "cost of weights = "         +   to_string(weightCost(parameters) / 2)      + "\n";
 	str +=   "max weight = "              +   to_string(maxCoeff)            + "\n";
 	str +=   "mean of abs weights = "     +   to_string( mean / io.examples() ) + "\n";
@@ -393,7 +405,7 @@ bool MLP::displayMQE(learningParameters &parameters) const
 	if ( (clock() - parameters.startingTime) * CLOCKS_PER_SEC_INV > parameters.nextDisplayTime )
 	{
 		parameters.nextDisplayTime += parameters.refreshTime;
-		display( "learning rate : " + to_string(parameters.learningRate) + "; MQE : " + to_string(parameters.mqe) );
+		display( "learning rate : " + to_string(parameters.learningRate) + "; MQE : " + to_string(parameters.mqe) + "; MQEV : " + to_string( MQE(parameters, VALIDATION) ) );
 		return 1;
 	}
 	else

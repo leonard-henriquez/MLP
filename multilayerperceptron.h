@@ -9,6 +9,7 @@ public:
 	enum initialise {NOT_INIT, INIT};
 	enum resetOrNot {NOT_RESET, RESET};
 	enum normaliseInput {NOT_NORMALISE, NORMALISE, NORMALISE_WITHOUT_RECALC};
+	enum learningValidationOrTest {LEARNING, VALIDATION, TEST};
 
 	MLP(void(*dispFunc)(const string &) = display);
 	MLP &operator =(const MLP &);
@@ -28,7 +29,7 @@ public:
 
 	EigenMatrix run () const;
 	EigenMatrix run (const integer &exampleIndex, const integer &layer) const;
-	realnumber MQE (const learningParameters &parameters) const;
+	realnumber MQE (const learningParameters &parameters, const learningValidationOrTest &lvt = LEARNING) const;
 
 	void gradientDescent (learningParameters &parameters);
 
