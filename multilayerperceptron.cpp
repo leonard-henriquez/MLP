@@ -146,7 +146,7 @@ void MLP::gradientDescent(learningParameters &parameters)
 		parameters.startingTime = clock();
 		arrayOfLayers layers_backup = layers, delta;
 		delta.resize( layers.size() );
-		for (int j = 0; j <= layers.last(); ++j)
+		for (integer j = 0; j <= layers.last(); ++j)
 		{
 			delta[j].resize(layers[j].rows(), 1);
 		}
@@ -164,7 +164,7 @@ void MLP::gradientDescent(learningParameters &parameters)
 
 			// présente un exemple au hasard pour l'apprendre
 
-			index = rand() % io.examples(); // ATTENTION! A améliorer
+			index = rand() % io.examples();	// ATTENTION! A améliorer
 
 			saveWeights(layers_backup);
 			weightDecay(parameters);
@@ -176,7 +176,7 @@ void MLP::gradientDescent(learningParameters &parameters)
 		}
 
 		display("learning finished! \n");
-		display("Iterations: " + to_string( int(parameters.iteration) ) + "; Temps en secondes :  " + to_string( (clock() - parameters.startingTime) * CLOCKS_PER_SEC_INV ) + "");
+		display(		 "Iterations: " + to_string( int(parameters.iteration) ) + "; Temps en secondes :  " + to_string( (clock() - parameters.startingTime) * CLOCKS_PER_SEC_INV ) + "");
 		displayInfo(parameters);
 	}
 }
@@ -203,14 +203,14 @@ void MLP::modifyWeights(const learningParameters &parameters, const integer &exa
 	for (integer j = layers.last(); j > 0; --j)
 	{
 		layers[j] +=
-		    parameters.learningRate
-		    * delta[j]
-		    * addBias( run(exampleIndex, j - 1) ).transpose();
+			parameters.learningRate
+			* delta[j]
+			* addBias( run(exampleIndex, j - 1) ).transpose();
 	}
 	layers[0] +=
-	    parameters.learningRate
-	    * delta[0]
-	    * addBias( io.getInput(exampleIndex) ).transpose();
+		parameters.learningRate
+		* delta[0]
+		* addBias( io.getInput(exampleIndex) ).transpose();
 }
 
 
@@ -220,15 +220,15 @@ EigenVector MLP::modifyDelta(EigenVector const &yj, EigenVector const &yo, integ
 	if ( layer == layers.last() )
 	{
 		delta[layer] =
-		    activation(layers[layer], yj, func.derivativeActivation).asDiagonal()
-		    * ( yo - activation(layers[layer], yj, func.activation) );
+			activation(layers[layer], yj, func.derivativeActivation).asDiagonal()
+			* ( yo - activation(layers[layer], yj, func.activation) );
 	}
 	else
 	{
 		delta[layer] =
-		    activation(layers[layer], yj, func.derivativeActivation).asDiagonal()
-		    * layers[layer + 1].block(0, 0, layers[layer + 1].rows(), layers[layer + 1].cols() - 1).transpose()
-		    * modifyDelta(activation(layers[layer], yj, func.activation), yo, layer + 1, delta);
+			activation(layers[layer], yj, func.derivativeActivation).asDiagonal()
+			* layers[layer + 1].block(0, 0, layers[layer + 1].rows(), layers[layer + 1].cols() - 1).transpose()
+			* modifyDelta(activation(layers[layer], yj, func.activation), yo, layer + 1, delta);
 	}
 
 	return delta[layer];
@@ -243,12 +243,17 @@ void MLP::modifyLearningRate(learningParameters &parameters, const arrayOfLayers
 		if (newmqe > ( 1 + 0.03 / io.examples() ) * parameters.mqe)
 		{
 			restoreWeights(layers_backup);
-			parameters.learningRate = min( max( parameters.learningRate - realnumber(0.3), realnumber(0.01) ), parameters.learningRate * realnumber(0.7) );
+			parameters.learningRate *= 0.97;
+			//parameters.learningRate = min( max( parameters.learningRate - realnumber(0.3), realnumber(0.01) ), parameters.learningRate * realnumber(0.7) );
+		}
+		else if (newmqe < ( 1 + 0.02 / io.examples() ) * parameters.mqe)
+		{
+			parameters.mqe = newmqe;
+			parameters.learningRate *= 1.01;
 		}
 		else
 		{
 			parameters.mqe = newmqe;
-			parameters.learningRate += 0.001;
 		}
 	}
 	else
@@ -326,21 +331,21 @@ void MLP::weightDecay(const learningParameters &parameters)
 		rows = layers[j].rows();
 		cols = layers[j].cols();
 		layers[j].block(0, 0, rows, cols - 1) =
-		    (1 - parameters.lambda[0])
-		    * layers[j].block(0, 0, rows, cols - 1);
+			(1 - parameters.lambda[0])
+			* layers[j].block(0, 0, rows, cols - 1);
 		layers[j].block(0, cols - 1, rows, 1) =
-		    (1 - parameters.lambda[2])
-		    * layers[j].block(0, cols - 1, rows, 1);
+			(1 - parameters.lambda[2])
+			* layers[j].block(0, cols - 1, rows, 1);
 	}
 	j = layers.last();
 	rows = layers[j].rows();
 	cols = layers[j].cols();
 	layers[j].block(0, 0, rows, cols - 1) =
-	    (1 - parameters.lambda[1])
-	    * layers[j].block(0, 0, rows, cols - 1);
+		(1 - parameters.lambda[1])
+		* layers[j].block(0, 0, rows, cols - 1);
 	layers[j].block(0, cols - 1, rows, 1) =
-	    (1 - parameters.lambda[2])
-	    * layers[j].block(0, cols - 1, rows, 1);
+		(1 - parameters.lambda[2])
+		* layers[j].block(0, cols - 1, rows, 1);
 }
 
 
