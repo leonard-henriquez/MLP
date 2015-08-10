@@ -565,19 +565,22 @@ public:
 		batchSize = min(nbExamples / 7, size);
 		integer vtSize = (batchSize >= 0) ? batchSize : nbExamples / 10;
 
+		learningSet.clear();
+		validationSet.clear();
+		testSet.clear();
 		for (integer i = 0; i < nbExamples; ++i)
 			learningSet.push_back(i);
 
 		random_shuffle(learningSet.begin(), learningSet.end());
 
 
-		for (integer i = 0; i < vtSize; ++i)
+        while(validationSet.size() != vtSize)
 		{
 			validationSet.push_back(learningSet.back());
 			learningSet.pop_back();
 		}
 
-		for (integer i = 0; i < vtSize; ++i)
+        while(testSet.size() != vtSize)
 		{
 			testSet.push_back(learningSet.back());
 			learningSet.pop_back();
@@ -601,7 +604,7 @@ public:
 			}
 
 			batchSet.clear();
-			for (integer i = 0; i < batchSize; ++i)
+            while(batchSet.size() != batchSize)
 			{
 				batchSet.push_back(toBatch.back());
 				toBatch.pop_back();

@@ -160,6 +160,7 @@ void MLP::gradientDescent(learningParameters &parameters)
 
 			// on vérifie s'ils sont meilleurs que les anciens, sinon on revient en arrière
 			modifyLearningRate(parameters);
+			io.newBatch();
 			parameters.iteration++;
 		}
 
