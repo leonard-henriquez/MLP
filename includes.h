@@ -574,13 +574,13 @@ public:
 		random_shuffle(learningSet.begin(), learningSet.end());
 
 
-        while(validationSet.size() != vtSize)
+		while (validationSet.size() != vtSize)
 		{
 			validationSet.push_back(learningSet.back());
 			learningSet.pop_back();
 		}
 
-        while(testSet.size() != vtSize)
+		while (testSet.size() != vtSize)
 		{
 			testSet.push_back(learningSet.back());
 			learningSet.pop_back();
@@ -604,7 +604,7 @@ public:
 			}
 
 			batchSet.clear();
-            while(batchSet.size() != batchSize)
+			while (batchSet.size() != batchSize)
 			{
 				batchSet.push_back(toBatch.back());
 				toBatch.pop_back();

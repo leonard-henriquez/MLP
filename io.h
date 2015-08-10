@@ -22,6 +22,7 @@ EigenMatrix readMNISTPics(const string &fileloc, const int &nbExamples)
 	EigenMatrix dataSet;
 
 	ifstream file(fileloc, ios::binary);
+	file.setf(ios_base::scientific);
 	if (file.is_open())
 	{
 		cout << "loading images..." << endl;
@@ -41,7 +42,6 @@ EigenMatrix readMNISTPics(const string &fileloc, const int &nbExamples)
 
 		dataSet.resize(nbRows * nbCols, numberOfImages);
 
-		int j = 1;
 		for (int i = 0; i != numberOfImages; ++i)
 		{
 			for (int r = 0; r != nbRows; ++r)
@@ -88,7 +88,6 @@ EigenMatrix readMNISTLabels(const string &fileloc, const int &nbExamples)
 
 		dataSet = -EigenMatrix::Ones(10, numberOfImages);
 
-		int j = 1;
 		for (int i = 0; i != numberOfImages; ++i)
 		{
 			unsigned char temp = 0;
@@ -160,7 +159,7 @@ void readMLP(const string &input, MLP &mlp)
 
 void writeMLP(const string &output, const MLP &mlp)
 {
-	ofstream file(output, ios::binary);
+	ofstream file(output, ios::binary | ios::trunc);
 
 	if (file.is_open())
 	{
@@ -187,12 +186,12 @@ void writeMLP(const string &output, const MLP &mlp)
 			const EigenMatrix &mat = layers[i];
 			rows = mat.rows();
 			cols = mat.cols();
-			int j = 1;
 			for (integer r = 0; r != rows; ++r)
 			{
 				for (integer c = 0; c != cols; ++c)
 				{
-					file.write((char*) &mat(r, c), fs);
+					float value = mat(r, c);
+					file.write((char*) &value, fs);
 				}
 
 				cout << "\r" << floor((sum[i] + r * rows) * percent) << "%";
