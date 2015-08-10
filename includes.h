@@ -6,6 +6,7 @@
 #include <time.h>
 #include <cmath>
 #include <Eigen/Dense>
+#include <algorithm>
 
 // Typedef
 using namespace Eigen;
@@ -18,6 +19,10 @@ typedef Matrix<realnumber, Dynamic, 1> EigenVector;
 typedef Matrix<realnumber, Dynamic, Dynamic> EigenMatrix;
 
 const realnumber CLOCKS_PER_SEC_INV = 1 / realnumber(CLOCKS_PER_SEC);
+
+enum mode {LEARNING, VALIDATION, TEST};
+enum initFlag {NOT_INIT, INIT, SET_ZERO};
+enum resetFlag {NOT_RESET, RESET};
 
 
 
@@ -35,13 +40,13 @@ inline realnumber norm2(const EigenMatrix &input)
 
 inline realnumber sigmoid(realnumber const &value)
 {
-	return 1 / ( 1 + expf(-value) );
+	return 1 / (1 + expf(-value));
 }
 
 
 inline realnumber sigmoidDerivative(realnumber const &value)
 {
-	return sigmoid(value) * ( 1 - sigmoid(value) );
+	return sigmoid(value) * (1 - sigmoid(value));
 }
 
 
@@ -59,7 +64,7 @@ inline realnumber tanH(realnumber const &value)
 
 inline realnumber tanHDerivative(realnumber const &value)
 {
-	return 1.1439 * ( 1 - powf(tanhf(value * 0.66666), 2) );
+	return 1.1439 * (1 - powf(tanhf(value * 0.66666), 2));
 }
 
 
@@ -80,20 +85,20 @@ inline EigenMatrix addBias(const EigenMatrix &matrix)
 	integer rows = matrix.rows(), cols = matrix.cols();
 	EigenMatrix newMatrix(rows + 1, cols);
 	newMatrix.block(   0, 0, rows, cols) = matrix;
-	newMatrix.block(rows, 0, 1,	   cols) = -EigenVector::Ones( matrix.cols() ).transpose();
+	newMatrix.block(rows, 0, 1,	   cols) = -EigenVector::Ones(matrix.cols()).transpose();
 	return newMatrix;
 }
 
 
 inline EigenMatrix activation(const EigenMatrix &weights, const EigenMatrix &inputVector)
 {
-	return ( weights * addBias(inputVector) ).unaryExpr( ptr_fun(sigmoid) );
+	return (weights * addBias(inputVector)).unaryExpr(ptr_fun(sigmoid));
 }
 
 
-inline EigenMatrix activation( const EigenMatrix &weights, const EigenMatrix &inputVector, realnumber (*function)(realnumber const &) )
+inline EigenMatrix activation(const EigenMatrix &weights, const EigenMatrix &inputVector, realnumber (*function)(realnumber const &))
 {
-	return ( weights * addBias(inputVector) ).unaryExpr( ptr_fun(function) );
+	return (weights * addBias(inputVector)).unaryExpr(ptr_fun(function));
 }
 
 
@@ -113,98 +118,237 @@ class layerType : private vector<EigenMatrix>
 {
 
 public:
-	layerType(const integer &size) : vector<EigenMatrix>(size), _size(size), _last(size - 1) {}
 
-	layerType( const vector<integer> &structure = vector<integer>() ) : vector<EigenMatrix>(), _size(0), _last(-1)
+
+	layerType(const integer &size = 0) : vector<EigenMatrix>(size), _size(size), _last(size - 1) {}
+
+	layerType(const vector<integer> &structure, initFlag init = SET_ZERO) : vector<EigenMatrix>(), _size(0), _last(-1)
 	{
-		set(structure);
+		if (init == SET_ZERO)
+			set(structure);
+		else
+			resize(structure);
 	}
-	void set( const vector<integer> &structure = vector<integer>() )
+
+	layerType(const layerType &other)
+	{
+		clone(other);
+	}
+
+	void clone(const layerType &other)
+	{
+		layerType::resize(other.size());
+		for (integer i = 0; i < _size; ++i)vector<EigenMatrix>::operator [](i) = other[i];
+	}
+
+	void set(const vector<integer> &structure, const initFlag &init = SET_ZERO)
 	{
 		if (structure.size() > 1)
 		{
 			layerType::resize(structure.size() - 1);
-			for (integer i = 0; i < size(); ++i)
-				at(i).resize(structure[i + 1], structure[i] + 1);
+			if (init == SET_ZERO)
+			{
+				for (integer i = 0; i < size(); ++i)
+				{
+					vector<EigenMatrix>::operator [](i) = EigenMatrix::Zero(structure[i + 1], structure[i] + 1);
+
+
+				}
+			}
+			else
+			{
+				for (integer i = 0; i < size(); ++i)
+				{
+					vector<EigenMatrix>::operator [](i).resize(structure[i + 1], structure[i] + 1);
+
+
+				}
+			}
 		}
 		else
 		{
 			vector<EigenMatrix>::clear();
 		}
 	}
-	vector<integer> get() const
+
+	vector<integer>getStructure() const
 	{
 		vector<integer> vect;
-		vect.push_back(at(0).cols() - 1);
-		for (integer j = 0; j < size(); ++j)
-			vect.push_back( at(j).rows() );
+		if (_size > 0 && at(0).cols() > 0)
+		{
+			vect.push_back(at(0).cols() - 1);
+			for (integer j = 0; j < _size; ++j)
+			{
+				vect.push_back(at(j).rows());
+			}
+		}
 		return vect;
 	}
+
 	void clear()
 	{
 		vector<EigenMatrix>::clear();
 	}
+
+	void resize(const vector<integer> &structure = vector<integer>())
+	{
+		if (structure.size() > 1)
+		{
+			layerType::resize(structure.size() - 1);
+			for (integer i = 0; i < size(); ++i)
+			{
+				vector<EigenMatrix>::operator [](i).resize(structure[i + 1], structure[i] + 1);
+
+
+			}
+		}
+		else
+		{
+			vector<EigenMatrix>::clear();
+		}
+	}
+
 	void resize(integer size)
 	{
 		_size = size;
 		_last = _size - 1;
 		vector<EigenMatrix>::resize(_size);
 	}
+
 	integer size() const
 	{
 		return _size;
 	}
+
 	integer last() const
 	{
 		return _last;
 	}
+
 	layerType& operator =(const layerType &other)
 	{
-		layerType::resize( other.size() );
-		for (integer i = 0; i < _size; ++i)
-			vector<EigenMatrix>::operator [](i) = other[i];
+		clone(other);
 		return *this;
 	}
+
+	layerType& operator +=(const layerType &other)
+	{
+		for (integer i = 0; i < _size; ++i)
+		{
+			vector<EigenMatrix>::operator [](i) += other[i];
+
+
+		}
+
+		return *this;
+	}
+
+	layerType& operator *=(const float &f)
+	{
+		for (integer i = 0; i < _size; ++i)
+		{
+			vector<EigenMatrix>::operator [](i) *= f;
+
+
+		}
+
+		return *this;
+	}
+
 	EigenMatrix& operator [](integer i)
 	{
 		return vector<EigenMatrix>::operator [](i);
 	}
+
 	EigenMatrix const operator [](integer i) const
 	{
 		return at(i);
 	}
+
 private:
+
+
 	integer _size;
 	integer _last;
 };
 
-class deltaType : private vector<EigenMatrix>
+
+
+inline layerType operator +(layerType one, const layerType &other)
+{
+	return one += other;
+}
+
+
+inline layerType operator *(layerType layer, const float &f)
+{
+	return layer *= f;
+}
+
+
+class deltaType : private vector<EigenVector>
 {
 
 public:
-	deltaType(const layerType &layers) : vector<EigenMatrix>( layers.size() )
+
+
+	deltaType() : vector<EigenVector>() {}
+
+	deltaType(const deltaType &other)
 	{
-		for (integer i = 0; i <= layers.last(); ++i)
+		clone(other);
+	}
+
+	deltaType(const vector<integer> &structure) : vector<EigenVector>()
+	{
+		set(structure);
+	}
+
+	deltaType(const layerType &layers) : vector<EigenVector>()
+	{
+		set(layers.getStructure());
+	}
+
+	void clone(const deltaType &other)
+	{
+		vector<EigenVector>::resize(other.vector<EigenVector>::size());
+		for (integer i = 0; i < vector<EigenVector>::size(); ++i)
 		{
-			vector<EigenMatrix>::operator [](i).resize(layers[i].rows(), 1);
+			vector<EigenVector>::operator [](i) = other[i];
+
+
 		}
 	}
+
+	void set(const vector<integer> &structure)
+	{
+		vector<EigenVector>::resize(max((unsigned long) 0, structure.size() - 1));
+		for (integer i = 0; i < structure.size() - 1; ++i)
+		{
+			vector<EigenVector>::operator [](i) = EigenVector::Zero(structure[i + 1]);
+
+
+		}
+	}
+
 	deltaType& operator =(const deltaType &other)
 	{
-		vector<EigenMatrix>::resize( other.vector<EigenMatrix>::size() );
-		for (integer i = 0; i < vector<EigenMatrix>::size(); ++i)
-			vector<EigenMatrix>::operator [](i) = other[i];
+		clone(other);
 		return *this;
 	}
-	EigenMatrix& operator [](integer i)
+
+	EigenVector& operator [](integer i)
 	{
-		return vector<EigenMatrix>::operator [](i);
+		return vector<EigenVector>::operator [](i);
 	}
-	EigenMatrix const operator [](integer i) const
+
+	EigenVector const operator [](integer i) const
 	{
 		return at(i);
 	}
+
 };
+
 
 
 /****************************************************** learning functions **********************************************************/
@@ -227,18 +371,33 @@ struct functions
 
 union universalClass
 {
+public:
+
 
 	struct gD
 	{
-		gD( layerType layers = layerType() ) : backup(layers), delta( deltaType(layers) ) {}
+		gD() : backup(), delta(), gradient() {}
+
+		gD(layerType layers) : backup(layers), delta(deltaType(layers))
+		{
+			gradient.set(layers.getStructure());
+		}
+
 		layerType backup;
 		deltaType delta;
+		layerType gradient;
 	};
 
 	universalClass() : gradientDescent() {}
 	~universalClass() {}
 
 	gD gradientDescent;
+private:
+
+
+	universalClass(const universalClass &other);
+	universalClass& operator =(const universalClass &other);
+
 
 };
 
@@ -255,11 +414,10 @@ struct learningParameters
 		maxTime(MT),
 		learningRate(LR),
 		adaptativeLearningRate(ALR),
-		lambda({
-		{L0, L1, L2}
-	}),
 		algorithmSpecific()
-	{}
+	{
+		lambda = {L0, L1, L2};
+	}
 
 	int iteration;
 	clock_t startingTime;
@@ -282,135 +440,238 @@ class learningData
 {
 
 public:
-	learningData( const EigenMatrix &I = EigenMatrix(), const EigenMatrix &O = EigenMatrix() ) :
-		input(),
-		output(),
-		mean(),
-		sigma(0),
-		nbExamples( min( I.cols(), O.cols() ) ),
-		nbLearningExamples(nbExamples),
-		nbValidationExamples(0),
-		nbTestExamples(0)
+
+
+	learningData() :
+		sigma(0), nbExamples(0), batchSize(-1)
+	{}
+
+	learningData(const EigenMatrix &I, const EigenMatrix &O) :
+		batchSize(-1)
 	{
 		setIO(I, O);
 	}
+
+	learningData(const learningData &other)
+	{
+		clone(other);
+	}
+
 	learningData& operator =(const learningData &other)
+	{
+		clone(other);
+		return *this;
+	}
+
+	void clone(const learningData &other)
 	{
 		input = other.input;
 		output = other.output;
 		mean = other.mean;
 		sigma = other.sigma;
 		nbExamples = other.nbExamples;
-		nbLearningExamples = other.nbLearningExamples;
-		nbValidationExamples = other.nbValidationExamples;
-		nbTestExamples = other.nbTestExamples;
-		return *this;
+		batchSize = other.batchSize;
+		batchSet = other.batchSet;
+		learningSet = other.learningSet;
+		validationSet = other.validationSet;
+		testSet = other.testSet;
 	}
-	void shuffle()
-	{
-		PermutationMatrix<Dynamic, Dynamic> perm(nbExamples);
-		perm.setIdentity();
-		std::random_shuffle( perm.indices().data(), perm.indices().data() + perm.indices().size() );
-		input = input * perm;
-		output = output * perm;
-	}
+
 	void setIO(const EigenMatrix &I, const EigenMatrix &O)
 	{
 		input = I;
 		output = O;
+		nbExamples = min(input.cols(), output.cols());
 		input.resize(input.rows(), nbExamples);
 		output.resize(output.rows(), nbExamples);
+		setBatchSize(-1);
 
-		resetProportion();
-		mean.resize( input.rows() );
+		mean.resize(input.rows());
 		for (integer i = 0; i < input.rows(); ++i)
 			mean(i) = input.row(i).sum() / input.cols();
-		EigenMatrix mean_resized = mean * ( EigenVector::Ones( input.cols() ) ).transpose();
-		sigma = sqrt( norm(input - mean_resized) );
+
+		EigenMatrix mean_resized = mean * (EigenVector::Ones(input.cols())).transpose();
+		sigma = sqrt(norm(input - mean_resized));
 		if (sigma != 0)
 			input = (input - mean_resized) / sigma;
 		else
-			input = EigenMatrix( input.rows(), input.cols() );
+			input = EigenMatrix(input.rows(), input.cols());
 	}
+
 	EigenMatrix getOriginalInput() const
 	{
-		return input * sigma + mean * ( EigenVector::Ones( input.cols() ) ).transpose();
+		return input * sigma + mean * (EigenVector::Ones(input.cols())).transpose();
 	}
+
 	EigenMatrix getInput() const
 	{
 		return input;
 	}
-	EigenMatrix getInput(integer i) const
+
+	EigenMatrix getInput(const integer &i) const
 	{
 		return input.col(i);
 	}
+
+	EigenMatrix getInput(const mode &lvt) const
+	{
+		const vector<integer>& indexes = batch(lvt);
+
+		EigenMatrix permutation = EigenMatrix::Zero(nbExamples, indexes.size());
+		for (integer i = 0; i < indexes.size(); ++i)
+		{
+			permutation(indexes[i], i) = 1;
+		}
+
+		return input * permutation;
+	}
+
 	EigenMatrix getOutput() const
 	{
 		return output;
 	}
-	EigenMatrix getOutput(integer i) const
+
+	EigenMatrix getOutput(const integer &i) const
 	{
 		return output.col(i);
 	}
-	EigenMatrix getMean(integer i = 1) const
+
+	EigenMatrix getOutput(const mode &lvt) const
 	{
-		return mean * ( EigenVector::Ones(i) ).transpose();
+		const vector<integer>& indexes = batch(lvt);
+
+		EigenMatrix permutation = EigenMatrix::Zero(nbExamples, indexes.size());
+		for (integer i = 0; i < indexes.size(); ++i)
+		{
+			permutation(indexes[i], i) = 1;
+		}
+
+		return output * permutation;
 	}
+
+	EigenMatrix getMean(const integer &i = 1) const
+	{
+		return mean * (EigenVector::Ones(i)).transpose();
+	}
+
 	realnumber getSigma() const
 	{
 		return sigma;
 	}
-	void resetProportion()
+
+	void setBatchSize(const integer &size)
 	{
-		nbExamples = min( input.cols(), output.cols() );
-		nbLearningExamples = nbExamples;
-		nbValidationExamples = 0;
-		nbTestExamples = 0;
-	}
-	void setProportion(integer percentV, integer percentT)
-	{
-		if (percentV + percentT <= 100)
+		// at least 5 learning batch because it's useless to have a too big validation set
+		batchSize = min(nbExamples / 7, size);
+		integer vtSize = (batchSize >= 0) ? batchSize : nbExamples / 10;
+
+		for (integer i = 0; i < nbExamples; ++i)
+			learningSet.push_back(i);
+
+		random_shuffle(learningSet.begin(), learningSet.end());
+
+
+		for (integer i = 0; i < vtSize; ++i)
 		{
-			nbValidationExamples = floor( (float)percentV * nbExamples / 100 );
-			nbTestExamples = floor( (float)percentT * nbExamples / 100 );
-			nbLearningExamples = nbExamples - nbValidationExamples - nbTestExamples;
+			validationSet.push_back(learningSet.back());
+			learningSet.pop_back();
+		}
+
+		for (integer i = 0; i < vtSize; ++i)
+		{
+			testSet.push_back(learningSet.back());
+			learningSet.pop_back();
+		}
+
+		newBatch();
+	}
+
+	integer getBatchSize() const
+	{
+		return batchSize;
+	}
+
+	vector<integer> newBatch()
+	{
+		if (batchSize >= 0)
+		{
+			if (toBatch.empty())
+			{
+				toBatch = learningSet;
+			}
+
+			batchSet.clear();
+			for (integer i = 0; i < batchSize; ++i)
+			{
+				batchSet.push_back(toBatch.back());
+				toBatch.pop_back();
+			}
+
+			return batchSet;
+		}
+		else
+		{
+			batchSet = learningSet;
+			return batchSet;
 		}
 	}
-	integer validationExamples() const
+
+	vector<integer> batch() const
 	{
-		return nbValidationExamples;
+		return batchSet;
 	}
-	integer testExamples() const
+
+	vector<integer> batch(const mode &lvt) const
 	{
-		return nbTestExamples;
+		switch (lvt)
+		{
+		case LEARNING:
+			return batchSet;
+			break;
+		case VALIDATION:
+			return validationSet;
+			break;
+		case TEST:
+			return testSet;
+			break;
+		}
+		return vector<integer>();
 	}
-	integer learningExamples() const
-	{
-		return nbLearningExamples;
-	}
+
 	integer examples() const
 	{
 		return nbExamples;
 	}
+
 	integer inputs() const
 	{
 		return input.rows();
 	}
+
 	integer outputs() const
 	{
 		return output.rows();
 	}
+
 private:
+
+
 	EigenMatrix input;
 	EigenMatrix output;
 	EigenVector mean;
 	realnumber sigma;
 	integer nbExamples;
-	integer nbLearningExamples;
-	integer nbValidationExamples;
-	integer nbTestExamples;
+	integer batchSize;
+	vector<integer> batchSet;
+	vector<integer> toBatch;
+	vector<integer> validationSet;
+	vector<integer> learningSet;
+	vector<integer> testSet;
 };
 
+
+
+/************************************************************* else ****************************************************************/
 
 
 

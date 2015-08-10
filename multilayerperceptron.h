@@ -6,49 +6,79 @@
 class MLP
 {
 public:
-	enum initialise {NOT_INIT, INIT};
-	enum resetOrNot {NOT_RESET, RESET};
-	enum normaliseInput {NOT_NORMALISE, NORMALISE, NORMALISE_WITHOUT_RECALC};
-	enum learningValidationOrTest {LEARNING, VALIDATION, TEST};
+
 
 	MLP(void(*dispFunc)(const string &) = display);
-	MLP &operator =(const MLP &);
+	MLP & operator =(const MLP &);
+
 
 	MLP (const MLP &other);
 	virtual ~MLP();
 	bool isSet () const;
+
 	void restoreWeights (const layerType &layers_backup);
+
 	layerType get () const;
-	void setStructure (const vector<integer> &str, const initialise &init = INIT, const resetOrNot &overrideIfAlreadySet = RESET);
-	vector<integer> getStructure () const;
-	void setActivationFunction (integer i);	// 0 sig, 1 tanh
+
+	void setStructure (const vector<integer> &str, const initFlag &init = INIT, const resetFlag &overrideIfAlreadySet = RESET);
+
+
+	vector<integer>getStructure () const;
+
+	void setActivationFunction (integer i);			// 0 sig, 1 tanh
+
 	integer getActivationFunction () const;
+
 	void setLearningData (learningData &data);
+
 	learningData getLearningData () const;
-	void setDisplayFunction ( void (*displayFunction)(string const&) );
+
+	void setDisplayFunction (void (*displayFunction)(string const&));
 
 	EigenMatrix run () const;
+
 	EigenMatrix run (const integer &exampleIndex, const integer &layer) const;
-	realnumber MQE (const learningParameters &parameters, const learningValidationOrTest &lvt = LEARNING) const;
+
+	EigenMatrix run (const mode &lvt) const;
+
+	realnumber MQE (const learningParameters &parameters, const mode &lvt = VALIDATION) const;
+
+	layerType gradient (const integer &exampleIndex);
+
+	layerType meanGradient ();
 
 	void gradientDescent (learningParameters &parameters);
 
 	virtual void displayInfo (const learningParameters &parameters) const;
+
+
 protected:
+
+
 	void clone (const MLP &);
+
 	void clear ();
 
 	void saveWeights (learningParameters &parameters) const;
+
 	void restoreWeights (const learningParameters &parameters);
 
 	virtual bool displayMQE (learningParameters &parameters) const;
 
+
 	// apprentissage
 	void weightDecay (const learningParameters &parameters);
+
 	realnumber weightCost (const learningParameters &parameters) const;
+
+	EigenVector modifyDelta (deltaType &delta, const EigenVector &yj, const EigenVector &yo, const integer &layer);
+
 	EigenVector modifyDelta (learningParameters &parameters, const EigenVector &yj, const EigenVector &yo, const integer &layer);
+
 	void modifyWeights (learningParameters &parameters, const integer &exampleIndex);
+
 	void modifyLearningRate (learningParameters &parameters);
+
 
 	// structure du MLP
 	layerType layers;
@@ -59,5 +89,7 @@ protected:
 
 	void (*displayFunction)(string const&);
 };
+
+
 
 #endif	// MULTILAYERPERCEPTRON_H
