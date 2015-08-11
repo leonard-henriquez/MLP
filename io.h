@@ -17,7 +17,7 @@ int reverseInt(int i)
 }
 
 
-EigenMatrix readMNISTPics(const string &fileloc, const int &nbExamples)
+EigenMatrix readMNISTImages(const string &fileloc, const int &numberOfExamples)
 {
 	EigenMatrix dataSet;
 
@@ -37,7 +37,7 @@ EigenMatrix readMNISTPics(const string &fileloc, const int &nbExamples)
 		file.read((char*)&nbCols,		  sizeof(nbCols));
 		nbCols = reverseInt(nbCols);
 
-		numberOfImages = min(nbExamples, 60000);
+        numberOfImages = min(numberOfExamples, 60000);
 		float percent = 1 / (float) numberOfImages * 100;
 
 		dataSet.resize(nbRows * nbCols, numberOfImages);
@@ -68,7 +68,7 @@ EigenMatrix readMNISTPics(const string &fileloc, const int &nbExamples)
 }
 
 
-EigenMatrix readMNISTLabels(const string &fileloc, const int &nbExamples)
+EigenMatrix readMNISTLabels(const string &fileloc, const int &numberOfExamples)
 {
 	EigenMatrix dataSet;
 
@@ -83,7 +83,7 @@ EigenMatrix readMNISTLabels(const string &fileloc, const int &nbExamples)
 		file.read((char*)&numberOfImages, sizeof(numberOfImages));
 		numberOfImages = reverseInt(numberOfImages);
 
-		numberOfImages = min(nbExamples, 60000);
+        numberOfImages = min(numberOfExamples, 60000);
 		float percent = 1 / (float) numberOfImages * 100;
 
 		dataSet = -EigenMatrix::Ones(10, numberOfImages);
