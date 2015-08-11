@@ -12,7 +12,8 @@ qtcAddDeployment()
 
 HEADERS += multilayerperceptron.h \
     io.h \
-    includes.h
+    global.h \
+    mlp_includes.h
 
 INCLUDEPATH += /opt/intel/mkl/include
 LIBS += -L/opt/intel/mkl/lib/intel64 \

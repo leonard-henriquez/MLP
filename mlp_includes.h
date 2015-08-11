@@ -16,7 +16,7 @@ typedef double realnumber;
 typedef array<realnumber, 3> decayArray;
 typedef vector<realnumber> STLVector;
 typedef Matrix<realnumber, Dynamic, 1> EigenVector;
-typedef Matrix<realnumber, Dynamic, Dynamic> EigenMatrix;
+typedef Matrix<realnumber, Dynamic, Dynamic, ColMajor> EigenMatrix;
 
 const realnumber CLOCKS_PER_SEC_INV = 1 / realnumber(CLOCKS_PER_SEC);
 
