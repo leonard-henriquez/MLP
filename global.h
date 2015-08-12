@@ -10,8 +10,9 @@
 
 // type definitions
 enum chooseMode {LEARNING_MODE, TEST_MODE, HELP_MODE, FAIL};
-typedef void sigfunc(int);
-sigfunc *signal(int, sigfunc*);
+typedef void sigfunc (int);
+sigfunc *signal (int, sigfunc*);
+
 
 // global variables
 chooseMode appMode = LEARNING_MODE;

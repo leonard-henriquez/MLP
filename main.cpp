@@ -3,7 +3,7 @@
 // prototypes
 vector<integer> stringToVector (string str);
 void getArguments (int argc, char* argv[]);
-void signalHandler(int signo);
+void signalHandler (int signo);
 bool setup (MLP &mlp);
 bool helpMode ();
 bool testMode (const MLP &mlp);
@@ -14,7 +14,7 @@ void displayResults (const EigenVector &outputVector);
 int main(int argc, char* argv[])
 {
 	cout << "\033[1;1H\x1b[2J";
-    signal(SIGINT, signalHandler);
+	signal(SIGINT, signalHandler);
 
 	// get arguments from console
 	getArguments(argc, argv);
@@ -23,17 +23,17 @@ int main(int argc, char* argv[])
 	switch (appMode)
 	{
 	case LEARNING_MODE:
-        images = readData(inputDataFile, numberOfExamples);
-        labels = readData(outputDataFile, numberOfExamples);
+		images = readData(inputDataFile, numberOfExamples);
+		labels = readData(outputDataFile, numberOfExamples);
 		setup(mlp);
 		mlp.gradientDescent(parameters);
-        if (!outputMLPFile.empty())
-            writeMLP(outputMLPFile, mlp);
+		if (!outputMLPFile.empty())
+			writeMLP(outputMLPFile, mlp);
 		break;
 
 	case TEST_MODE:
-        images = readData(inputDataFile, numberOfExamples);
-        labels = readData(outputDataFile, numberOfExamples);
+		images = readData(inputDataFile, numberOfExamples);
+		labels = readData(outputDataFile, numberOfExamples);
 		setup(mlp);
 		testMode(mlp);
 		break;
@@ -79,16 +79,16 @@ void getArguments(int argc, char* argv[])
 		switch (c)
 		{
 		case 'i':
-            inputMLPFile = optarg;
+			inputMLPFile = optarg;
 			break;
 		case 'o':
-            outputMLPFile = optarg;
+			outputMLPFile = optarg;
 			break;
 		case 'd':
-            inputDataFile = optarg;
+			inputDataFile = optarg;
 			break;
 		case 'l':
-            outputDataFile = optarg;
+			outputDataFile = optarg;
 			break;
 		case 'e':
 			numberOfExamples = atoi(optarg);
@@ -129,37 +129,52 @@ void getArguments(int argc, char* argv[])
 
 }
 
+
 void signalHandler(int signo)
 {
-    if (signo == SIGINT)
-        cout << "\r" << flush << "\n" << "\033[38;5;46mSignal received!\033[m" << endl;
-    if (signo == 2)
-    {
-        cout << "Would you like to stop? [\033[38;5;46mN\033[m/\033[38;5;196my\033[m] " << flush;
-        char value = getchar(), yes = 'y', no = 'n';
-        if (value == yes)
-        {
-            if (appMode == LEARNING_MODE)
-            {
-                cout << "Would you like to save? [\033[38;5;46mY\033[m/\033[38;5;196mn\033[m] " << flush;
-                value = getchar();
-                cout << endl;
-                if (value != no)
-                {
-                    parameters.maxTime = 0;
-                    if (outputMLPFile.empty())
-                    {
-                        cout << "No output file where specified; MLP will be save in ./mlp" << endl;
-                        outputMLPFile = "mlp";
-                    }
-                }
-            }
+	if (signo == SIGINT)
+		cout << "\r" << flush << "\n" << "\033[38;5;46mSignal received!\033[m" << endl;
+	if (signo == 2)
+	{
+		cout << "Would you like to stop? [\033[38;5;46mN\033[m/\033[38;5;196my\033[m] " << flush;
+        char c;
+
+        do
+            c = getchar() | 0x20;
+        while (c != 'y' && c != 'n');
+        // clear buffer
+        while(getchar() != '\n');
+
+        if (c == 'y')
+		{
+			if (appMode == LEARNING_MODE)
+			{
+				cout << "Would you like to save? [\033[38;5;46mY\033[m/\033[38;5;196mn\033[m] " << flush;
+
+                do
+                    c = getchar() | 0x20;
+                while (c != 'y' && c != 'n');
+                // clear buffer
+                while(getchar() != '\n');
+
+                if (c == 'y')
+				{
+					if (outputMLPFile.empty())
+					{
+						cout << "No output file where specified; MLP will be save in ./mlp" << endl;
+						outputMLPFile = "mlp";
+					}
+                    writeMLP(outputMLPFile, mlp);
+				}
+                parameters.maxTime = 0;
+			}
             else
                 exit(0);
-        }
-    }
+		}
+	}
 
 }
+
 
 bool setup(MLP &mlp)
 {
@@ -174,9 +189,9 @@ bool setup(MLP &mlp)
 		mlp.setStructure(stringToVector(to_string(data.inputs()) + "," + MLPStructure + "," + to_string(data.outputs())));
 		return 1;
 	}
-    else if (!inputMLPFile.empty())
+	else if (!inputMLPFile.empty())
 	{
-        readMLP(inputMLPFile, mlp);
+		readMLP(inputMLPFile, mlp);
 		return 1;
 	}
 	else
@@ -204,10 +219,10 @@ vector<integer> stringToVector(string str)
 
 bool helpMode()
 {
-	cout << "--input or -i ./dir/mlpfile ; this option loads the MLP in mlpfile" << endl;
-	cout << "--output or -o./dir/mlpfile ; the mlp will be written in mlpfile after learning" << endl;
-	cout << "--image or -d ./dir/trainImages ; if the file 'trainImages' is not in the same folder as this application" << endl;
-	cout << "--label or -l ./dir/trainLabels ; if the file 'trainLabels' is not in the same folder as this application" << endl;
+    cout << "--input or -i ./dir/mlpfile.mlp ; this option loads the MLP in mlpfile" << endl;
+    cout << "--output or -o./dir/mlpfile.mlp ; the mlp will be written in mlpfile after learning" << endl;
+    cout << "--image or -d ./dir/MNIST_Images.dat ; if the file 'MNIST_Images.dat' is not in the same folder as this application" << endl;
+    cout << "--label or -l ./dir/MNIST_Labels.dat ; if the file 'MNIST_Labels.dat' is not in the same folder as this application" << endl;
 	cout << "--example or -e 2000 ; specifies how many images will be loaded from the MNIST database" << endl;
 	cout << "--struct or -s '300,150,50' ; this will build a MLP with three hidden layers of 300, 150 and 50 neurons" << endl;
 	cout << "--alr or -a (no argument) ; if enabled, learning rate will vary" << endl;
@@ -255,23 +270,23 @@ bool testMode(const MLP &mlp)
 
 	cout << "The MLP got " << countGoodOnes << " right predictions out of " << numberOfExamples - rejectedOnes << endl;
 	cout << "The MLP rejected " << rejectedOnes << " examples out of " << numberOfExamples << endl;
-    cout << "\nWhich example would you like to display? (Ctrl+C to stop)" << endl;
-    int value = 0;
-    while (1)
+	cout << "\nWhich example would you like to display? (Ctrl+C to stop)" << endl;
+	int value = 0;
+	while (1)
 	{
 		cin >> value;
 		cout << "\n\n" << endl;
 		if (cin.good() && value >= 0)
 		{
 			value = min((int)images.cols(), value);
-            displayImage(images.col(value));
-            displayResults(desiredOutputRaw.col(value));
+			displayImage(images.col(value));
+			displayResults(desiredOutputRaw.col(value));
 			displayResults(realOutputRaw.col(value));
 
 			cout << "MLP predicted that this image is a " << realOutput[value] << " (it is actually a " << desiredOutput[value] << ")" << endl;
-            cout << "Which example would you like to display? (Ctrl+C to stop)" << endl;
+			cout << "Which example would you like to display? (Ctrl+C to stop)" << endl;
 		}
-        else
+		else
 			cin.clear();
 	}
 
@@ -300,12 +315,12 @@ void displayImage(const EigenVector &image)
 
 void displayResults(const EigenVector &outputVector)
 {
-    for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < 10; ++i)
 		cout << "   " << i << "   |";
 	cout << endl;
 	for (int i = 0; i < 10; ++i)
 	{
-        float output = (outputVector[i]+1)/2;
+		float output = (outputVector[i] + 1) / 2;
 		string str = to_string(output);
 		str.resize(5);
 		cout << " "  << str << " |";

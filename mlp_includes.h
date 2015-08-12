@@ -3,7 +3,8 @@
 
 #include <iostream>
 #include <vector>
-#include <time.h>
+#include <chrono>
+#include <ctime>
 #include <cmath>
 #include <Eigen/Dense>
 #include <algorithm>
@@ -11,14 +12,13 @@
 // Typedef
 using namespace Eigen;
 using namespace std;
+using std::chrono::system_clock;
 typedef long long int integer;
-typedef double realnumber;
+typedef float realnumber;
 typedef array<realnumber, 3> decayArray;
 typedef vector<realnumber> STLVector;
 typedef Matrix<realnumber, Dynamic, 1> EigenVector;
 typedef Matrix<realnumber, Dynamic, Dynamic, ColMajor> EigenMatrix;
-
-const realnumber CLOCKS_PER_SEC_INV = 1 / realnumber(CLOCKS_PER_SEC);
 
 enum mode {LEARNING, VALIDATION, TEST};
 enum initFlag {NOT_INIT, INIT, SET_ZERO};
@@ -102,12 +102,17 @@ inline EigenMatrix activation(const EigenMatrix &weights, const EigenMatrix &inp
 }
 
 
-/******************************************************* display function ***********************************************************/
+/******************************************************** other functions ***********************************************************/
 
 
 inline void display(const string & str)
 {
 	cout << str << endl;
+}
+
+inline realnumber timeElapsed(const chrono::time_point<system_clock> &begin)
+{
+    return chrono::duration <float> (system_clock::now() - begin).count();
 }
 
 
@@ -406,7 +411,7 @@ struct learningParameters
 {
 	learningParameters(realnumber ME = 0.001, realnumber MT = 60, realnumber LR = 1, bool ALR = 1, realnumber L0 = 0, realnumber L1 = 0, realnumber L2 = 0) :
 		iteration(0),
-		startingTime(0),
+        startTime(),
 		refreshTime(1),
 		nextDisplayTime(0),
 		mqe(0),
@@ -420,9 +425,9 @@ struct learningParameters
 	}
 
 	int iteration;
-	clock_t startingTime;
-	clock_t refreshTime;
-	clock_t nextDisplayTime;
+    system_clock::time_point startTime;
+    realnumber nextDisplayTime;
+    realnumber refreshTime;
 	realnumber mqe;
 	realnumber maxError;
 	realnumber maxTime;
@@ -674,7 +679,7 @@ private:
 
 
 
-/************************************************************* else ****************************************************************/
+/************************************************************** else ****************************************************************/
 
 
 

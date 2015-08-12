@@ -17,8 +17,8 @@ EigenMatrix readData(const string &fileloc, const int &numberOfExamplesMax)
 		cout << "loading data..." << endl;
 
 		int n = 0, p = 0;
-        file.read((char*)&p, iss);
-        file.read((char*)&n, iss);
+		file.read((char*)&p, iss);
+		file.read((char*)&n, iss);
 
 		p = min(numberOfExamplesMax, p);
 		float percent = 1 / (float) p * 100;
@@ -28,8 +28,8 @@ EigenMatrix readData(const string &fileloc, const int &numberOfExamplesMax)
 		{
 			for (int i = 0; i != n; ++i)
 			{
-                float temp = 0;
-                file.read((char*)&temp, fs);
+				float temp = 0;
+				file.read((char*)&temp, fs);
 				mat(i, j) = temp;
 			}
 
@@ -57,8 +57,8 @@ void writeData(const string &fileloc, const EigenMatrix &mat)
 	{
 		int n = mat.rows(), p = mat.cols();
 		cout << "saving data..." << endl;
-        file.write((char*) &p, iss);
-        file.write((char*) &n, iss);
+		file.write((char*) &p, iss);
+		file.write((char*) &n, iss);
 
 		float percent = 1 / (float) p * 100;
 
@@ -66,8 +66,8 @@ void writeData(const string &fileloc, const EigenMatrix &mat)
 		{
 			for (int i = 0; i != n; ++i)
 			{
-                float temp = mat(i, j);
-                file.write((char*)&temp, fs);
+				float temp = mat(i, j);
+				file.write((char*)&temp, fs);
 			}
 
 			cout << "\r" << floor(j * percent) << "%";
@@ -156,7 +156,7 @@ void writeMLP(const string &output, const MLP &mlp)
 		float percent = 1 / (float) sum[size - 1] * 100;
 		/* ------------------------- */
 
-		const layerType layers = mlp.get();
+        const layerType layers = mlp.getWeights();
 		integer rows, cols;
 		for (integer i = 0; i <= layers.last(); ++i)
 		{

@@ -51,12 +51,6 @@ bool MLP::isSet() const
 }
 
 
-layerType MLP::get() const
-{
-	return layers;
-}
-
-
 void MLP::setStructure(const vector<integer> &str, const initFlag &init, const resetFlag &overrideIfAlreadySet)
 {
 	if (isSet() && overrideIfAlreadySet == RESET)
@@ -130,33 +124,25 @@ void MLP::gradientDescent(learningParameters &parameters)
  */
 
 	if (isSet())
-	{
-//		integer index;
+    {
 		parameters.iteration = 0;
 		parameters.nextDisplayTime = 0;
 		parameters.mqe = MQE(parameters);
-		parameters.startingTime = clock();
+        parameters.startTime = system_clock::now();
 		parameters.algorithmSpecific.gradientDescent = universalClass::gD(layers);
 
 		displayInfo(parameters);
 		display("learning starting...");
 
-		// pour la suite: "index" est le numéro de l'exemple que l'on est en train de traiter
-		// et "j" est le numéro de la couche
-		while (parameters.mqe > parameters.maxError && (clock() - parameters.startingTime) * CLOCKS_PER_SEC_INV < parameters.maxTime)
+        while (parameters.mqe > parameters.maxError && timeElapsed(parameters.startTime) < parameters.maxTime)
 		{
 			// affiche "mqe" et "learningRate" si le dernier affichage date de plus d'une seconde
 			displayMQE(parameters);
-
-			// présente un exemple au hasard pour l'apprendre
-
-//			index = rand() % io.learningExamples();	// ATTENTION! A améliorer
 
 			saveWeights(parameters);
 			weightDecay(parameters);
 
 			layers += meanGradient() * parameters.learningRate;
-//            modifyWeights(parameters, index);
 
 			// on vérifie s'ils sont meilleurs que les anciens, sinon on revient en arrière
 			modifyLearningRate(parameters);
@@ -165,7 +151,7 @@ void MLP::gradientDescent(learningParameters &parameters)
 		}
 
 		display("learning finished! \n");
-		display(		 "Iterations: " + to_string(int(parameters.iteration)) + "; Temps en secondes :  " + to_string((clock() - parameters.startingTime) * CLOCKS_PER_SEC_INV) + "");
+        display("Iterations: " + to_string(int(parameters.iteration)) + "; Temps en secondes :  " + to_string(timeElapsed(parameters.startTime)));
 		displayInfo(parameters);
 	}
 }
@@ -377,6 +363,12 @@ realnumber MLP::MQE(const learningParameters &parameters, const mode &lvt) const
 }
 
 
+layerType MLP::getWeights() const
+{
+    return layers;
+}
+
+
 void MLP::saveWeights(learningParameters &parameters) const
 {
 	parameters.algorithmSpecific.gradientDescent.backup = layers;
@@ -440,7 +432,7 @@ void MLP::displayInfo(const learningParameters &parameters) const
 bool MLP::displayMQE(learningParameters &parameters) const
 // affiche le "learningRate" et la "mqe" toutes les secondes
 {
-	if ((clock() - parameters.startingTime) * CLOCKS_PER_SEC_INV > parameters.nextDisplayTime)
+    if (timeElapsed(parameters.startTime)> parameters.nextDisplayTime)
 	{
 		parameters.nextDisplayTime += parameters.refreshTime;
 		display("learning rate : " + to_string(parameters.learningRate) + "; MQE : " + to_string(MQE(parameters, LEARNING)) + "; MQEV : " + to_string(parameters.mqe));
