@@ -6,16 +6,6 @@
 
 const integer fs = sizeof(float), iss = sizeof(int), is = sizeof(integer);
 
-int reverseInt(int i)
-{
-	unsigned char ch1, ch2, ch3, ch4;
-	ch1 = i & 255;
-	ch2 = (i >> 8) & 255;
-	ch3 = (i >> 16) & 255;
-	ch4 = (i >> 24) & 255;
-	return ((int)ch1 << 24) + ((int)ch2 << 16) + ((int)ch3 << 8) + ch4;
-}
-
 
 EigenMatrix readData(const string &fileloc, const int &numberOfExamplesMax)
 {
@@ -27,8 +17,8 @@ EigenMatrix readData(const string &fileloc, const int &numberOfExamplesMax)
 		cout << "loading data..." << endl;
 
 		int n = 0, p = 0;
-		file.read((char*)&p, iss);
-		file.read((char*)&n, iss);
+        file.read((char*)&p, iss);
+        file.read((char*)&n, iss);
 
 		p = min(numberOfExamplesMax, p);
 		float percent = 1 / (float) p * 100;
@@ -38,8 +28,8 @@ EigenMatrix readData(const string &fileloc, const int &numberOfExamplesMax)
 		{
 			for (int i = 0; i != n; ++i)
 			{
-				unsigned char temp = 0;
-				file.read((char*)&temp, sizeof(temp));
+                float temp = 0;
+                file.read((char*)&temp, fs);
 				mat(i, j) = temp;
 			}
 
@@ -67,8 +57,8 @@ void writeData(const string &fileloc, const EigenMatrix &mat)
 	{
 		int n = mat.rows(), p = mat.cols();
 		cout << "saving data..." << endl;
-		file.write((char*) &p, iss);
-		file.write((char*) &n, iss);
+        file.write((char*) &p, iss);
+        file.write((char*) &n, iss);
 
 		float percent = 1 / (float) p * 100;
 
@@ -76,8 +66,8 @@ void writeData(const string &fileloc, const EigenMatrix &mat)
 		{
 			for (int i = 0; i != n; ++i)
 			{
-				unsigned char temp = mat(i, j);
-				file.write((char*)&temp, sizeof(temp));
+                float temp = mat(i, j);
+                file.write((char*)&temp, fs);
 			}
 
 			cout << "\r" << floor(j * percent) << "%";

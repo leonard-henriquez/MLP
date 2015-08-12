@@ -3,6 +3,7 @@
 // prototypes
 vector<integer> stringToVector (string str);
 void getArguments (int argc, char* argv[]);
+void signalHandler(int signo);
 bool setup (MLP &mlp);
 bool helpMode ();
 bool testMode (const MLP &mlp);
@@ -13,6 +14,7 @@ void displayResults (const EigenVector &outputVector);
 int main(int argc, char* argv[])
 {
 	cout << "\033[1;1H\x1b[2J";
+    signal(SIGINT, signalHandler);
 
 	// get arguments from console
 	getArguments(argc, argv);
@@ -21,17 +23,17 @@ int main(int argc, char* argv[])
 	switch (appMode)
 	{
 	case LEARNING_MODE:
-		images = readData(imageFile, numberOfExamples);
-		labels = readData(labelFile, numberOfExamples);
+        images = readData(inputDataFile, numberOfExamples);
+        labels = readData(outputDataFile, numberOfExamples);
 		setup(mlp);
 		mlp.gradientDescent(parameters);
-		if (!outputFile.empty())
-			writeMLP(outputFile, mlp);
+        if (!outputMLPFile.empty())
+            writeMLP(outputMLPFile, mlp);
 		break;
 
 	case TEST_MODE:
-		images = readData(imageFile, numberOfExamples);
-		labels = readData(labelFile, numberOfExamples);
+        images = readData(inputDataFile, numberOfExamples);
+        labels = readData(outputDataFile, numberOfExamples);
 		setup(mlp);
 		testMode(mlp);
 		break;
@@ -77,16 +79,16 @@ void getArguments(int argc, char* argv[])
 		switch (c)
 		{
 		case 'i':
-			inputFile = optarg;
+            inputMLPFile = optarg;
 			break;
 		case 'o':
-			outputFile = optarg;
+            outputMLPFile = optarg;
 			break;
 		case 'd':
-			imageFile = optarg;
+            inputDataFile = optarg;
 			break;
 		case 'l':
-			labelFile = optarg;
+            outputDataFile = optarg;
 			break;
 		case 'e':
 			numberOfExamples = atoi(optarg);
@@ -127,6 +129,37 @@ void getArguments(int argc, char* argv[])
 
 }
 
+void signalHandler(int signo)
+{
+    if (signo == SIGINT)
+        cout << "\r" << flush << "\n" << "\033[38;5;46mSignal received!\033[m" << endl;
+    if (signo == 2)
+    {
+        cout << "Would you like to stop? [\033[38;5;46mN\033[m/\033[38;5;196my\033[m] " << flush;
+        char value = getchar(), yes = 'y', no = 'n';
+        if (value == yes)
+        {
+            if (appMode == LEARNING_MODE)
+            {
+                cout << "Would you like to save? [\033[38;5;46mY\033[m/\033[38;5;196mn\033[m] " << flush;
+                value = getchar();
+                cout << endl;
+                if (value != no)
+                {
+                    parameters.maxTime = 0;
+                    if (outputMLPFile.empty())
+                    {
+                        cout << "No output file where specified; MLP will be save in ./mlp" << endl;
+                        outputMLPFile = "mlp";
+                    }
+                }
+            }
+            else
+                exit(0);
+        }
+    }
+
+}
 
 bool setup(MLP &mlp)
 {
@@ -141,9 +174,9 @@ bool setup(MLP &mlp)
 		mlp.setStructure(stringToVector(to_string(data.inputs()) + "," + MLPStructure + "," + to_string(data.outputs())));
 		return 1;
 	}
-	else if (!inputFile.empty())
+    else if (!inputMLPFile.empty())
 	{
-		readMLP(inputFile, mlp);
+        readMLP(inputMLPFile, mlp);
 		return 1;
 	}
 	else
@@ -222,25 +255,23 @@ bool testMode(const MLP &mlp)
 
 	cout << "The MLP got " << countGoodOnes << " right predictions out of " << numberOfExamples - rejectedOnes << endl;
 	cout << "The MLP rejected " << rejectedOnes << " examples out of " << numberOfExamples << endl;
-	cout << "\nWhich example would you like to display? (-1 to stop)" << endl;
-	bool keepGoing = true;
-	int value = 0;
-	while (keepGoing)
+    cout << "\nWhich example would you like to display? (Ctrl+C to stop)" << endl;
+    int value = 0;
+    while (1)
 	{
 		cin >> value;
 		cout << "\n\n" << endl;
 		if (cin.good() && value >= 0)
 		{
 			value = min((int)images.cols(), value);
-			displayImage(images.col(value));
+            displayImage(images.col(value));
+            displayResults(desiredOutputRaw.col(value));
 			displayResults(realOutputRaw.col(value));
 
 			cout << "MLP predicted that this image is a " << realOutput[value] << " (it is actually a " << desiredOutput[value] << ")" << endl;
-			cout << "Which example would you like to display? (-1 to stop)" << endl;
+            cout << "Which example would you like to display? (Ctrl+C to stop)" << endl;
 		}
-		else if (value < 0)
-			keepGoing = false;
-		else
+        else
 			cin.clear();
 	}
 
@@ -269,12 +300,12 @@ void displayImage(const EigenVector &image)
 
 void displayResults(const EigenVector &outputVector)
 {
-	for (int i = 0; i < 10; ++i)
+    for (int i = 0; i < 10; ++i)
 		cout << "   " << i << "   |";
 	cout << endl;
 	for (int i = 0; i < 10; ++i)
 	{
-		float output = outputVector[i];
+        float output = (outputVector[i]+1)/2;
 		string str = to_string(output);
 		str.resize(5);
 		cout << " "  << str << " |";
