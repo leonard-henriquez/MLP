@@ -4,9 +4,9 @@
 vector<integer> stringToVector (string str);
 void getArguments (int argc, char* argv[]);
 void signalHandler (int signo);
-bool setup (MLP &mlp);
+bool setup ();
 bool helpMode ();
-bool testMode (const MLP &mlp);
+bool testMode ();
 void displayImage (const EigenVector &image);
 void displayResults (const EigenVector &outputVector);
 
@@ -18,24 +18,23 @@ int main(int argc, char* argv[])
 
 	// get arguments from console
 	getArguments(argc, argv);
-	MLP mlp;
 
 	switch (appMode)
 	{
 	case LEARNING_MODE:
 		images = readData(inputDataFile, numberOfExamples);
 		labels = readData(outputDataFile, numberOfExamples);
-		setup(mlp);
+        setup();
 		mlp.gradientDescent(parameters);
 		if (!outputMLPFile.empty())
-			writeMLP(outputMLPFile, mlp);
+            writeMLP(outputMLPFile, mlp);
 		break;
 
 	case TEST_MODE:
 		images = readData(inputDataFile, numberOfExamples);
 		labels = readData(outputDataFile, numberOfExamples);
-		setup(mlp);
-		testMode(mlp);
+        setup();
+        testMode();
 		break;
 
 	default:
@@ -176,7 +175,7 @@ void signalHandler(int signo)
 }
 
 
-bool setup(MLP &mlp)
+bool setup()
 {
 	// create learning data from arguments
 	learningData data(images, labels);
@@ -191,7 +190,7 @@ bool setup(MLP &mlp)
 	}
 	else if (!inputMLPFile.empty())
 	{
-		readMLP(inputMLPFile, mlp);
+        readMLP(inputMLPFile, mlp);
 		return 1;
 	}
 	else
@@ -234,7 +233,7 @@ bool helpMode()
 }
 
 
-bool testMode(const MLP &mlp)
+bool testMode()
 {
 	EigenMatrix realOutputRaw = mlp.run(), desiredOutputRaw = mlp.getLearningData().getOutput();
 	EigenVector realOutput(realOutputRaw.cols()), desiredOutput(desiredOutputRaw.cols());

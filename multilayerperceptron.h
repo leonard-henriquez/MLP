@@ -16,7 +16,7 @@ public:
 	virtual ~MLP();
 	bool isSet () const;
 
-	void restoreWeights (const layerType &layers_backup);
+    void restoreWeights (const layerType &layers_backup);
     layerType getWeights () const;
 
 	void setStructure (const vector<integer> &str, const initFlag &init = INIT, const resetFlag &overrideIfAlreadySet = RESET);

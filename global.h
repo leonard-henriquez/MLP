@@ -21,6 +21,7 @@ string MLPStructure, inputMLPFile, outputMLPFile, inputDataFile = "./MNIST_Image
 int numberOfExamples = 2000, batchSize = -1, batchPercent = -1;
 learningParameters parameters;
 EigenMatrix images, labels;
+MLP mlp;
 
 #endif	// GLOBAL
 

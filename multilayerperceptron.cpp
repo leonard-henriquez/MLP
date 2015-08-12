@@ -420,10 +420,10 @@ void MLP::displayInfo(const learningParameters &parameters) const
 
 	string str;
 
-	str +=   "MQE = "                     +   to_string(parameters.mqe)               + "\n";
-	str +=   "examples = "                +   to_string(io.examples())               + "\n";
-	str +=   "cost of weights = "         +   to_string(weightCost(parameters) / 2)      + "\n";
-	str +=   "max weight = "              +   to_string(maxCoeff)            + "\n";
+    str +=   "MQE = "                     +   to_string(parameters.mqe) + "\n";
+    str +=   "examples = "                +   to_string(io.examples()) + "\n";
+    str +=   "cost of weights = "         +   to_string(weightCost(parameters) / 2) + "\n";
+    str +=   "max weight = "              +   to_string(maxCoeff) + "\n";
 	str +=   "mean of abs weights = "     +   to_string(mean / io.examples()) + "\n";
 	display(str);
 }
