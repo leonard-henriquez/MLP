@@ -7,32 +7,32 @@ bool setup (MLP &mlp);
 bool helpMode ();
 bool testMode (const MLP &mlp);
 void displayImage (const EigenVector &image);
-void displayResults(const EigenVector &outputVector);
+void displayResults (const EigenVector &outputVector);
 
 
 int main(int argc, char* argv[])
 {
-    cout << "\033[1;1H\x1b[2J";
+	cout << "\033[1;1H\x1b[2J";
 
-    // get arguments from console
+	// get arguments from console
 	getArguments(argc, argv);
 	MLP mlp;
 
 	switch (appMode)
 	{
 	case LEARNING_MODE:
-        images = readMNISTImages(imageFile, numberOfExamples);
-        labels = readMNISTLabels(labelFile, numberOfExamples);
-        setup(mlp);
+		images = readData(imageFile, numberOfExamples);
+		labels = readData(labelFile, numberOfExamples);
+		setup(mlp);
 		mlp.gradientDescent(parameters);
 		if (!outputFile.empty())
 			writeMLP(outputFile, mlp);
 		break;
 
 	case TEST_MODE:
-        images = readMNISTImages(imageFile, numberOfExamples);
-        labels = readMNISTLabels(labelFile, numberOfExamples);
-        setup(mlp);
+		images = readData(imageFile, numberOfExamples);
+		labels = readData(labelFile, numberOfExamples);
+		setup(mlp);
 		testMode(mlp);
 		break;
 
@@ -89,7 +89,7 @@ void getArguments(int argc, char* argv[])
 			labelFile = optarg;
 			break;
 		case 'e':
-            numberOfExamples = atoi(optarg);
+			numberOfExamples = atoi(optarg);
 			break;
 		case 's':
 			MLPStructure = optarg;
@@ -116,14 +116,14 @@ void getArguments(int argc, char* argv[])
 			appMode = HELP_MODE;
 			break;
 		default:
-            cout << "one of the option specified doen not exist\n\nHelp:" << endl;
+			cout << "one of the option specified doen not exist\n\nHelp:" << endl;
 			appMode = FAIL;
 			break;
 		}
 	}
 
 	if (batchPercent != -1)
-        batchSize = floor((float) batchPercent * numberOfExamples / 100);
+		batchSize = floor((float) batchPercent * numberOfExamples / 100);
 
 }
 
@@ -131,7 +131,7 @@ void getArguments(int argc, char* argv[])
 bool setup(MLP &mlp)
 {
 	// create learning data from arguments
-    learningData data(images, labels);
+	learningData data(images, labels);
 	if (batchSize != -1)
 		data.setBatchSize(batchSize);
 	mlp.setLearningData(data);
@@ -190,16 +190,16 @@ bool testMode(const MLP &mlp)
 {
 	EigenMatrix realOutputRaw = mlp.run(), desiredOutputRaw = mlp.getLearningData().getOutput();
 	EigenVector realOutput(realOutputRaw.cols()), desiredOutput(desiredOutputRaw.cols());
-    int countGoodOnes = 0, rejectedOnes = 0, dMax, rMax;
+	int countGoodOnes = 0, rejectedOnes = 0, dMax, rMax;
 	float dValue, rValue;
 
-    for (int j = 0; j < numberOfExamples; ++j)
+	for (int j = 0; j < numberOfExamples; ++j)
 	{
 		dValue = -10;
-        rValue = -10;
-        for (int i = 0; i < 10; ++i)
-        {
-            if (desiredOutputRaw(i, j) > dValue)
+		rValue = -10;
+		for (int i = 0; i < 10; ++i)
+		{
+			if (desiredOutputRaw(i, j) > dValue)
 			{
 				dMax = i;
 				dValue = desiredOutputRaw(i, j);
@@ -213,29 +213,29 @@ bool testMode(const MLP &mlp)
 		realOutput[j] = (unsigned char) rMax;
 		desiredOutput[j] = (unsigned char) dMax;
 
-        if (rValue < 0)
-            rejectedOnes++;
-        else if (rMax == dMax)
+		if (rValue < 0)
+			rejectedOnes++;
+		else if (rMax == dMax)
 			countGoodOnes++;
 	}
 
 
-    cout << "The MLP got " << countGoodOnes << " right predictions out of " << numberOfExamples - rejectedOnes << endl;
-    cout << "The MLP rejected " << rejectedOnes << " examples out of " << numberOfExamples << endl;
-    cout << "\nWhich example would you like to display? (-1 to stop)" << endl;
+	cout << "The MLP got " << countGoodOnes << " right predictions out of " << numberOfExamples - rejectedOnes << endl;
+	cout << "The MLP rejected " << rejectedOnes << " examples out of " << numberOfExamples << endl;
+	cout << "\nWhich example would you like to display? (-1 to stop)" << endl;
 	bool keepGoing = true;
 	int value = 0;
-    while (keepGoing)
+	while (keepGoing)
 	{
 		cin >> value;
-        cout << "\n\n" << endl;
+		cout << "\n\n" << endl;
 		if (cin.good() && value >= 0)
 		{
-            value = min((int)images.cols(), value);
-            displayImage(images.col(value));
-            displayResults(realOutputRaw.col(value));
+			value = min((int)images.cols(), value);
+			displayImage(images.col(value));
+			displayResults(realOutputRaw.col(value));
 
-            cout << "MLP predicted that this image is a " << realOutput[value] << " (it is actually a " << desiredOutput[value] << ")" << endl;
+			cout << "MLP predicted that this image is a " << realOutput[value] << " (it is actually a " << desiredOutput[value] << ")" << endl;
 			cout << "Which example would you like to display? (-1 to stop)" << endl;
 		}
 		else if (value < 0)
@@ -251,34 +251,35 @@ bool testMode(const MLP &mlp)
 void displayImage(const EigenVector &image)
 {
 	int oldvalue = 232, value = 232;
-    cout << "\033[48;5;232m" << std::endl;
+	cout << "\033[48;5;232m" << std::endl;
 	for (int i = 112; i < 672; ++i)
 	{
 		oldvalue = value;
-        value = 232 + floor((float)image(i) / 255 * 24);
+		value = 232 + floor((float)image(i) / 255 * 24);
 		if (oldvalue != value)
-            cout << "\033[48;5;" << value << "m ";
+			cout << "\033[48;5;" << value << "m ";
 		else
-            cout << " ";
+			cout << " ";
 		if ((i + 1) % 28 == 0)
-            cout << "\033[m\n\033[48;5;232m" << std::flush;
+			cout << "\033[m\n\033[48;5;232m" << std::flush;
 	}
-    cout << "\033[m" << std::endl;
+	cout << "\033[m" << std::endl;
 }
+
 
 void displayResults(const EigenVector &outputVector)
 {
-    for (int i = 0; i < 10; ++i)
-        cout << "   " << i << "   |";
-    cout << endl;
-    for (int i = 0; i < 10; ++i)
-    {
-        float output = outputVector[i];
-        string str = to_string(output);
-        str.resize(5);
-        cout << " "  << str << " |";
-    }
-    cout << endl;
+	for (int i = 0; i < 10; ++i)
+		cout << "   " << i << "   |";
+	cout << endl;
+	for (int i = 0; i < 10; ++i)
+	{
+		float output = outputVector[i];
+		string str = to_string(output);
+		str.resize(5);
+		cout << " "  << str << " |";
+	}
+	cout << endl;
 }
 
 

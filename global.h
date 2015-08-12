@@ -12,7 +12,7 @@ enum chooseMode {LEARNING_MODE, TEST_MODE, HELP_MODE, FAIL};
 // global variables
 chooseMode appMode = LEARNING_MODE;
 bool adaptativeLearningRate = false;
-string MLPStructure, inputFile, outputFile, imageFile = "./trainImages", labelFile = "./trainLabels";
+string MLPStructure, inputFile, outputFile, imageFile = "./MNISTimages", labelFile = "./MNISTlabels";
 int numberOfExamples = 2000, batchSize = -1, batchPercent = -1;
 learningParameters parameters;
 EigenMatrix images, labels;

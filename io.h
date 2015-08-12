@@ -4,7 +4,7 @@
 #include <fstream>
 #include <iostream>
 
-const integer fs = sizeof(float), is = sizeof(integer);
+const integer fs = sizeof(float), iss = sizeof(int), is = sizeof(integer);
 
 int reverseInt(int i)
 {
@@ -17,93 +17,80 @@ int reverseInt(int i)
 }
 
 
-EigenMatrix readMNISTImages(const string &fileloc, const int &numberOfExamples)
+EigenMatrix readData(const string &fileloc, const int &numberOfExamplesMax)
 {
-	EigenMatrix dataSet;
+	EigenMatrix mat;
 
 	ifstream file(fileloc, ios::binary);
-	file.setf(ios_base::scientific);
 	if (file.is_open())
 	{
-		cout << "loading images..." << endl;
+		cout << "loading data..." << endl;
 
-		int magicNumber = 0, numberOfImages = 0, nbRows = 0, nbCols = 0;
-		file.read((char*)&magicNumber,	  sizeof(magicNumber));
-		magicNumber = reverseInt(magicNumber);
-		file.read((char*)&numberOfImages, sizeof(numberOfImages));
-		numberOfImages = reverseInt(numberOfImages);
-		file.read((char*)&nbRows,		  sizeof(nbRows));
-		nbRows = reverseInt(nbRows);
-		file.read((char*)&nbCols,		  sizeof(nbCols));
-		nbCols = reverseInt(nbCols);
+		int n = 0, p = 0;
+		file.read((char*)&p, iss);
+		file.read((char*)&n, iss);
 
-        numberOfImages = min(numberOfExamples, 60000);
-		float percent = 1 / (float) numberOfImages * 100;
+		p = min(numberOfExamplesMax, p);
+		float percent = 1 / (float) p * 100;
+		mat.resize(n, p);
 
-		dataSet.resize(nbRows * nbCols, numberOfImages);
-
-		for (int i = 0; i != numberOfImages; ++i)
+		for (int j = 0; j != p; ++j)
 		{
-			for (int r = 0; r != nbRows; ++r)
+			for (int i = 0; i != n; ++i)
 			{
-				for (int c = 0; c != nbCols; ++c)
-				{
-					unsigned char temp = 0;
-					file.read((char*)&temp, sizeof(temp));
-					dataSet(nbRows * r + c, i) = temp;
-				}
+				unsigned char temp = 0;
+				file.read((char*)&temp, sizeof(temp));
+				mat(i, j) = temp;
 			}
 
-			cout << "\r" << floor(i * percent) << "%";
+			cout << "\r" << floor(j * percent) << "%";
 		}
 
 		cout << "\r" << "100%" << endl;
 		file.close();
+
+
 	}
 	else
 	{
-		cout << "ERROR: can't find trainImage" << endl;
+		cout << "ERROR: cannot open data file" << endl;
 	}
-	return dataSet;
+	return mat;
 }
 
 
-EigenMatrix readMNISTLabels(const string &fileloc, const int &numberOfExamples)
+void writeData(const string &fileloc, const EigenMatrix &mat)
 {
-	EigenMatrix dataSet;
 
-	ifstream file(fileloc, ios::binary);
+	ofstream file(fileloc, ios::binary | ios::trunc);
 	if (file.is_open())
 	{
-		cout << "loading labels..." << endl;
+		int n = mat.rows(), p = mat.cols();
+		cout << "saving data..." << endl;
+		file.write((char*) &p, iss);
+		file.write((char*) &n, iss);
 
-		int magicNumber = 0, numberOfImages = 0;
-		file.read((char*)&magicNumber,	  sizeof(magicNumber));
-		magicNumber = reverseInt(magicNumber);
-		file.read((char*)&numberOfImages, sizeof(numberOfImages));
-		numberOfImages = reverseInt(numberOfImages);
+		float percent = 1 / (float) p * 100;
 
-        numberOfImages = min(numberOfExamples, 60000);
-		float percent = 1 / (float) numberOfImages * 100;
-
-		dataSet = -EigenMatrix::Ones(10, numberOfImages);
-
-		for (int i = 0; i != numberOfImages; ++i)
+		for (integer j = 0; j != p; ++j)
 		{
-			unsigned char temp = 0;
-			file.read((char*)&temp, sizeof(temp));
-			dataSet(temp, i) = 1;
-			cout << "\r" << floor(i * percent) << "%";
+			for (int i = 0; i != n; ++i)
+			{
+				unsigned char temp = mat(i, j);
+				file.write((char*)&temp, sizeof(temp));
+			}
+
+			cout << "\r" << floor(j * percent) << "%";
 		}
 
 		cout << "\r" << "100%" << endl;
+
 		file.close();
 	}
 	else
 	{
-		cout << "ERROR: can't find trainLabel" << endl;
+		cout << "ERROR: cannot open data file" << endl;
 	}
-	return dataSet;
 }
 
 
