@@ -110,9 +110,10 @@ inline void display(const string & str)
 	cout << str << endl;
 }
 
+
 inline realnumber timeElapsed(const chrono::time_point<system_clock> &begin)
 {
-    return chrono::duration <float> (system_clock::now() - begin).count();
+	return chrono::duration <float> (system_clock::now() - begin).count();
 }
 
 
@@ -409,9 +410,9 @@ private:
 
 struct learningParameters
 {
-	learningParameters(realnumber ME = 0.001, realnumber MT = 60, realnumber LR = 1, bool ALR = 1, realnumber L0 = 0, realnumber L1 = 0, realnumber L2 = 0) :
+    learningParameters(realnumber ME = 0.001, realnumber MT = 60, realnumber LR = 1, bool ALR = 0, realnumber L0 = 0, realnumber L1 = 0, realnumber L2 = 0) :
 		iteration(0),
-        startTime(),
+		startTime(),
 		refreshTime(1),
 		nextDisplayTime(0),
 		mqe(0),
@@ -425,9 +426,9 @@ struct learningParameters
 	}
 
 	int iteration;
-    system_clock::time_point startTime;
-    realnumber nextDisplayTime;
-    realnumber refreshTime;
+	system_clock::time_point startTime;
+	realnumber nextDisplayTime;
+	realnumber refreshTime;
 	realnumber mqe;
 	realnumber maxError;
 	realnumber maxTime;
@@ -448,7 +449,7 @@ public:
 
 
 	learningData() :
-		sigma(0), nbExamples(0), batchSize(-1)
+        sigma(0), nbExamples(0), batchSize(-1)
 	{}
 
 	learningData(const EigenMatrix &I, const EigenMatrix &O) :

@@ -123,55 +123,37 @@ void MLP::gradientDescent(learningParameters &parameters)
  * ALR = ADAPTATIVELR (adaptative learning rate)
  */
 
+	layerType grad(layers.getStructure(), NOT_INIT);
+
+
 	if (isSet())
-    {
+	{
 		parameters.iteration = 0;
 		parameters.nextDisplayTime = 0;
 		parameters.mqe = MQE(parameters);
-        parameters.startTime = system_clock::now();
+		parameters.startTime = system_clock::now();
 		parameters.algorithmSpecific.gradientDescent = universalClass::gD(layers);
 
 		displayInfo(parameters);
 		display("learning starting...");
 
-        while (parameters.mqe > parameters.maxError && timeElapsed(parameters.startTime) < parameters.maxTime)
+		while (parameters.mqe > parameters.maxError && timeElapsed(parameters.startTime) < parameters.maxTime)
 		{
 			// affiche "mqe" et "learningRate" si le dernier affichage date de plus d'une seconde
 			displayMQE(parameters);
 
-			saveWeights(parameters);
 			weightDecay(parameters);
 
-			layers += meanGradient() * parameters.learningRate;
+            update(meanGradient(), parameters);
 
-			// on vérifie s'ils sont meilleurs que les anciens, sinon on revient en arrière
-			modifyLearningRate(parameters);
 			io.newBatch();
 			parameters.iteration++;
 		}
 
 		display("learning finished! \n");
-        display("Iterations: " + to_string(int(parameters.iteration)) + "; Temps en secondes :  " + to_string(timeElapsed(parameters.startTime)));
+		display(		 "Iterations: " + to_string(int(parameters.iteration)) + "; Temps en secondes :  " + to_string(timeElapsed(parameters.startTime)));
 		displayInfo(parameters);
 	}
-}
-
-
-void MLP::modifyWeights(learningParameters &parameters, const integer &exampleIndex)
-{
-	modifyDelta(parameters, io.getInput(exampleIndex), io.getOutput(exampleIndex), 0);
-	for (integer j = layers.last(); j > 0; --j)
-	{
-		layers[j] +=
-			parameters.learningRate
-			* parameters.algorithmSpecific.gradientDescent.delta[j]
-			* addBias(run(exampleIndex, j - 1)).transpose();
-	}
-
-	layers[0] +=
-		parameters.learningRate
-		* parameters.algorithmSpecific.gradientDescent.delta[0]
-		* addBias(io.getInput(exampleIndex)).transpose();
 }
 
 
@@ -186,7 +168,7 @@ layerType MLP::gradient(const integer &exampleIndex)
 		gradient[j] = delta[j] * addBias(run(exampleIndex, j - 1)).transpose();
 	}
 
-	gradient[0] += delta[0] * addBias(io.getInput(exampleIndex)).transpose();
+	gradient[0] = delta[0] * addBias(io.getInput(exampleIndex)).transpose();
 	return gradient;
 }
 
@@ -226,50 +208,83 @@ EigenVector MLP::modifyDelta(deltaType &delta, const EigenVector &yj, const Eige
 }
 
 
-EigenVector MLP::modifyDelta(learningParameters &parameters, const EigenVector &yj, const EigenVector &yo, const integer &layer)
-// yo = desiredOutput
+void MLP::update(layerType const &gradient, learningParameters &parameters)
 {
-	if (layer == layers.last())
-	{
-		parameters.algorithmSpecific.gradientDescent.delta[layer] =
-			activation(layers[layer], yj, func.derivativeActivation).asDiagonal()
-			* (yo - activation(layers[layer], yj, func.activation));
-	}
-	else
-	{
-		parameters.algorithmSpecific.gradientDescent.delta[layer] =
-			activation(layers[layer], yj, func.derivativeActivation).asDiagonal()
-			* layers[layer + 1].block(0, 0, layers[layer + 1].rows(), layers[layer + 1].cols() - 1).transpose()
-			* modifyDelta(parameters, activation(layers[layer], yj, func.activation), yo, layer + 1);
-	}
-
-	return parameters.algorithmSpecific.gradientDescent.delta[layer];
-}
-
-
-void MLP::modifyLearningRate(learningParameters &parameters)
-{
-	realnumber newmqe = MQE(parameters);
 	if (parameters.adaptativeLearningRate)
 	{
-		if (newmqe > (1 + 0.03 / io.examples()) * parameters.mqe)
+//        const vector<realnumber> learningRateModifier = {0.95, 1, 1.05};
+//        const int size = learningRateModifier.size();
+//        vector<realnumber> mqe(size);
+
+//        while (1)
+//        {
+//            layers += grad * (parameters.learningRate * learningRateModifier[i]);
+//            mqe[i] = MQE(parameters);
+//            // si on trouve un learning rate bien on le garde
+//            if (mqe[i] < 0.95 * parameters.mqe)
+//            {
+//                parameters.learningRate *= learningRateModifier[i];
+//                parameters.mqe = mqe.back();
+//                break;
+//            }
+//            // sinon aucun n'est bien, après les avoir tous passés en revue, on prend le moins pire
+//            else if (i == size - 1)
+//            {
+//                integer min = 0;
+//                for (i = 1; i < size; ++i)
+//                {
+//                    if (mqe[i] < mqe[min])
+//                        min = i;
+//                }
+//                parameters.learningRate *= learningRateModifier[min];
+//                layers += gradient * parameters.learningRate;
+//                parameters.mqe = mqe[min];
+//                break;
+//            }
+//            else
+//            {
+//                restoreWeights(parameters);
+//                ++i;
+//            }
+//        }
+
+		saveWeights(parameters);
+
+		layers += gradient * parameters.learningRate;
+		vector<realnumber> mqe(2);
+		mqe[0] = parameters.mqe;
+		mqe[1] = MQE(parameters);
+
+        float i = 0;
+		while (mqe[i + 1] < mqe[i])
 		{
-			restoreWeights(parameters);
-			parameters.learningRate *= 0.97;
+            i++;
+            layers += gradient * (parameters.learningRate * i * 0.1);
+			mqe.push_back(MQE(parameters));
 		}
-		else if (newmqe < (1 + 0.02 / io.examples()) * parameters.mqe)
+
+		if (mqe[1] < mqe[0])
 		{
-			parameters.mqe = newmqe;
-			parameters.learningRate *= 1.01;
+            layers += gradient * (parameters.learningRate * -0.1);
+            parameters.learningRate *= 1 + i * 0.02;
+			parameters.mqe = mqe[i];
 		}
+//		else if (mqe[1] < 1.01 * mqe[0])
+//		{
+//			parameters.mqe = mqe[1];
+//		}
 		else
 		{
-			parameters.mqe = newmqe;
+			restoreWeights(parameters);
+            parameters.learningRate *= 0.80;
 		}
+
+
 	}
 	else
 	{
-		parameters.mqe = newmqe;
+		layers += gradient * parameters.learningRate;
+		parameters.mqe = MQE(parameters);
 	}
 }
 
@@ -314,27 +329,33 @@ EigenMatrix MLP::run(const mode &lvt) const
 void MLP::weightDecay(const learningParameters &parameters)
 {
 	integer rows, cols, j;
-	for (j = 0; j < layers.last(); ++j)
+	if (parameters.lambda[0] != 0 || parameters.lambda[2] != 0)
 	{
+		for (j = 0; j < layers.last(); ++j)
+		{
+			rows = layers[j].rows();
+			cols = layers[j].cols();
+			layers[j].block(0, 0, rows, cols - 1) =
+				(1 - parameters.lambda[0])
+				* layers[j].block(0, 0, rows, cols - 1);
+			layers[j].block(0, cols - 1, rows, 1) =
+				(1 - parameters.lambda[2])
+				* layers[j].block(0, cols - 1, rows, 1);
+		}
+	}
+
+	if (parameters.lambda[1] != 0 || parameters.lambda[2] != 0)
+	{
+		j = layers.last();
 		rows = layers[j].rows();
 		cols = layers[j].cols();
 		layers[j].block(0, 0, rows, cols - 1) =
-			(1 - parameters.lambda[0])
+			(1 - parameters.lambda[1])
 			* layers[j].block(0, 0, rows, cols - 1);
 		layers[j].block(0, cols - 1, rows, 1) =
 			(1 - parameters.lambda[2])
 			* layers[j].block(0, cols - 1, rows, 1);
 	}
-
-	j = layers.last();
-	rows = layers[j].rows();
-	cols = layers[j].cols();
-	layers[j].block(0, 0, rows, cols - 1) =
-		(1 - parameters.lambda[1])
-		* layers[j].block(0, 0, rows, cols - 1);
-	layers[j].block(0, cols - 1, rows, 1) =
-		(1 - parameters.lambda[2])
-		* layers[j].block(0, cols - 1, rows, 1);
 }
 
 
@@ -365,7 +386,7 @@ realnumber MLP::MQE(const learningParameters &parameters, const mode &lvt) const
 
 layerType MLP::getWeights() const
 {
-    return layers;
+	return layers;
 }
 
 
@@ -420,10 +441,10 @@ void MLP::displayInfo(const learningParameters &parameters) const
 
 	string str;
 
-    str +=   "MQE = "                     +   to_string(parameters.mqe) + "\n";
-    str +=   "examples = "                +   to_string(io.examples()) + "\n";
-    str +=   "cost of weights = "         +   to_string(weightCost(parameters) / 2) + "\n";
-    str +=   "max weight = "              +   to_string(maxCoeff) + "\n";
+	str +=   "MQE = "                     +   to_string(parameters.mqe) + "\n";
+	str +=   "examples = "                +   to_string(io.examples()) + "\n";
+	str +=   "cost of weights = "         +   to_string(weightCost(parameters) / 2) + "\n";
+	str +=   "max weight = "              +   to_string(maxCoeff) + "\n";
 	str +=   "mean of abs weights = "     +   to_string(mean / io.examples()) + "\n";
 	display(str);
 }
@@ -432,7 +453,7 @@ void MLP::displayInfo(const learningParameters &parameters) const
 bool MLP::displayMQE(learningParameters &parameters) const
 // affiche le "learningRate" et la "mqe" toutes les secondes
 {
-    if (timeElapsed(parameters.startTime)> parameters.nextDisplayTime)
+	if (timeElapsed(parameters.startTime) > parameters.nextDisplayTime)
 	{
 		parameters.nextDisplayTime += parameters.refreshTime;
 		display("learning rate : " + to_string(parameters.learningRate) + "; MQE : " + to_string(MQE(parameters, LEARNING)) + "; MQEV : " + to_string(parameters.mqe));

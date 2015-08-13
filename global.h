@@ -17,10 +17,10 @@ sigfunc *signal (int, sigfunc*);
 // global variables
 chooseMode appMode = LEARNING_MODE;
 bool adaptativeLearningRate = false;
-string MLPStructure, inputMLPFile, outputMLPFile, inputDataFile = "./MNIST_Images.dat", outputDataFile = "./MNIST_Labels.dat";
+string MLPStructure, inputMLPFile, outputMLPFile, dataFile = "./MNIST", generatedDataFile;
 int numberOfExamples = 2000, batchSize = -1, batchPercent = -1;
 learningParameters parameters;
-EigenMatrix images, labels;
+EigenMatrix inputData, outputData;
 MLP mlp;
 
 #endif	// GLOBAL

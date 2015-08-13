@@ -19,6 +19,11 @@ EigenMatrix readData(const string &fileloc, const int &numberOfExamplesMax)
 		int n = 0, p = 0;
 		file.read((char*)&p, iss);
 		file.read((char*)&n, iss);
+		if (n == 0 || p == 0)
+		{
+			cout << "Error: cannot open data file" << endl;
+			exit(0);
+		}
 
 		p = min(numberOfExamplesMax, p);
 		float percent = 1 / (float) p * 100;
@@ -43,7 +48,8 @@ EigenMatrix readData(const string &fileloc, const int &numberOfExamplesMax)
 	}
 	else
 	{
-		cout << "ERROR: cannot open data file" << endl;
+		cout << "Error: cannot open data file" << endl;
+		exit(0);
 	}
 	return mat;
 }
@@ -79,7 +85,7 @@ void writeData(const string &fileloc, const EigenMatrix &mat)
 	}
 	else
 	{
-		cout << "ERROR: cannot open data file" << endl;
+		cout << "Error: cannot open data file" << endl;
 	}
 }
 
@@ -156,7 +162,7 @@ void writeMLP(const string &output, const MLP &mlp)
 		float percent = 1 / (float) sum[size - 1] * 100;
 		/* ------------------------- */
 
-        const layerType layers = mlp.getWeights();
+		const layerType layers = mlp.getWeights();
 		integer rows, cols;
 		for (integer i = 0; i <= layers.last(); ++i)
 		{

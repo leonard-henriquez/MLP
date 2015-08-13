@@ -16,10 +16,12 @@ public:
 	virtual ~MLP();
 	bool isSet () const;
 
-    void restoreWeights (const layerType &layers_backup);
-    layerType getWeights () const;
+	void restoreWeights (const layerType &layers_backup);
+	layerType getWeights () const;
 
 	void setStructure (const vector<integer> &str, const initFlag &init = INIT, const resetFlag &overrideIfAlreadySet = RESET);
+
+
 	vector<integer>getStructure () const;
 	void setActivationFunction (integer i);			// 0 sig, 1 tanh
 	integer getActivationFunction () const;
@@ -53,10 +55,8 @@ protected:
 	// apprentissage
 	void weightDecay (const learningParameters &parameters);
 	realnumber weightCost (const learningParameters &parameters) const;
-	EigenVector modifyDelta (deltaType &delta, const EigenVector &yj, const EigenVector &yo, const integer &layer);
-	EigenVector modifyDelta (learningParameters &parameters, const EigenVector &yj, const EigenVector &yo, const integer &layer);
-	void modifyWeights (learningParameters &parameters, const integer &exampleIndex);
-	void modifyLearningRate (learningParameters &parameters);
+    EigenVector modifyDelta (deltaType &delta, const EigenVector &yj, const EigenVector &yo, const integer &layer);
+    void update (const layerType &gradient, learningParameters &parameters);
 
 
 	// structure du MLP
@@ -66,7 +66,7 @@ protected:
 	// données entres/sorties
 	learningData io;
 
-    void (*displayFunction)(string const&);
+	void (*displayFunction)(string const&);
 };
 
 
