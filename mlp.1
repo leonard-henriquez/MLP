@@ -1,0 +1,94 @@
+.TH MLP 1 "August 2015" "" "Multi Layer Perceptron"
+.SH NAME
+mlp \- multi layer perceptron
+.SH SYNOPSIS
+.B MLP --help
+.br
+.B MLP [-ma]
+.br
+.B [-i
+.I mlpfile
+.B ]
+.B [-o
+.I mlpfile
+.B ]
+.br
+.B [-g
+.I dbfile
+.B ]
+.B [-d
+.I dbfile
+.B ]
+.br
+.B [-e
+.I number
+.B ]
+.B [-s
+.I struct
+.B ]
+.B [-t
+.I time
+.B ]
+.br
+.B [-f
+.I mqe
+.B ]
+.B [-r
+.I rate
+.B ]
+.B [-b
+.I size
+.B ]
+.B ...
+.SH DESCRIPTION
+\fIMLP\fP is a program that trains or tests a multi layer perceptron, depending on the mode that is used. The switch between the two modes is controlled by the \fB\-m\fP parameter.
+.TP
+In the learning mode, \fIMLP\fP takes as an entry a MNIST database with the parameter \fB\-d\fP and creates a new multi layer perceptron that can be saved using the parameter \fB\-o\fP.
+.TP
+In the test mode, \fIMLP\fP takes as an entry a MNIST database with the parameter \fB\-d\fP and a new multi layer perceptron with the parameter \fB\-i\fP.
+.SH OPTIONS
+.TP
+.B \-i --input=\fIFILE\fP
+Load a mlp from \fIFILE\fP
+.TP
+.B \-o --output=\fIFILE\fP
+Save a mlp to \fIFILE\fP
+.TP
+.B \-d --data=\fIFILE\fP
+if the file 'MNIST.in' or 'MNIST.out' are not in the same folder as this application
+.TP
+.B \-g --gendata=\fIFILE\fP
+new learning data '.in' and '.out'
+.TP
+.B \-e --example=\fIN\fP
+\fIN\fP examples will be loaded from the MNIST database.
+.TP
+.B \-s --struct=\fIPATTERN\fP
+Structure of the MLP. For example 300,150,50 will create three hidden layers of 300, 150 and 50 neurons.
+.TP
+.B \-t --time=\fIN\fP
+Stop the learning phase after \fIN\fP seconds
+.TP
+.B \-f --error=\fIX\fP
+Stop the learning phase when the MQE is lower than \fIX\fP
+.TP
+.B \-r --lr=\fIX\fP
+Set the learning rate to \fIX\fP. Typical value is 0.5
+.TP
+.B \-b --batch=\fISIZE
+Set the batch size to \fISIZE\fP
+.TP
+.B \-a --alr
+Activate a dynamic learning rate
+.TP
+.B \-m --test
+Activate the test mode
+.SH BUGS
+The command name should have been chosen more carefully
+to reflect its purpose.
+.SH AUTHOR
+Leonard Henriquez alias Gros Cafard <leonard_henriquez at hotmail dot com>
+.SH "SEE ALSO"
+.BR bar (1),
+.BR foo (5),
+.BR xyzzy (1)
