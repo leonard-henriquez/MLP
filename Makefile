@@ -5,13 +5,19 @@ CPPFLAGS += -Iinclude
 BUILD := bin
 LIB   := $(BUILD)/libmlp.a
 OBJS  := $(patsubst src/%.cpp,$(BUILD)/%.o,$(wildcard src/*.cpp))
+BINS  := $(patsubst examples/%.cpp,$(BUILD)/%,$(wildcard examples/*.cpp))
 
-.PHONY: all clean
+.PHONY: all examples clean
 
-all: $(LIB)
+all: $(LIB) examples
+
+examples: $(BINS)
 
 $(LIB): $(OBJS)
 	$(AR) rcs $@ $^
+
+$(BUILD)/%: examples/%.cpp $(LIB)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $< $(LIB) -o $@
 
 $(BUILD)/%.o: src/%.cpp | $(BUILD)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
