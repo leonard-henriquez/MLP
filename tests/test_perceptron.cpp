@@ -27,6 +27,11 @@ void testPerceptron()
     checkLearns("data/OU2.txt");
     checkLearns("data/NON2.txt");
 
+    // XOR is not linearly separable: a single perceptron cannot learn it.
+    Perceptron xorPerceptron(2);
+    CHECK(!xorPerceptron.train(Dataset::load("examples/data/xor2.txt"), 200));
+    CHECK(xorPerceptron.epochs() == 200);
+
     Perceptron perceptron(2);
     std::vector<double> inputs(3, 0.0);
     CHECK_THROWS(perceptron.output(inputs));
