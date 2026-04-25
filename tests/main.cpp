@@ -10,12 +10,16 @@ int failures = 0;
 void testActivation();
 void testDataset();
 void testPerceptron();
+void testRandom();
+void testLayer();
 
 int main()
 {
     testActivation();
     testDataset();
     testPerceptron();
+    testRandom();
+    testLayer();
 
     if (check::failures > 0)
     {
