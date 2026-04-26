@@ -12,6 +12,7 @@ void testDataset();
 void testPerceptron();
 void testRandom();
 void testLayer();
+void testNetwork();
 
 int main()
 {
@@ -20,6 +21,7 @@ int main()
     testPerceptron();
     testRandom();
     testLayer();
+    testNetwork();
 
     if (check::failures > 0)
     {
