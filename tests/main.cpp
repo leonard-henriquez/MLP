@@ -13,6 +13,8 @@ void testPerceptron();
 void testRandom();
 void testLayer();
 void testNetwork();
+void testBackpropagation();
+void testTraining();
 
 int main()
 {
@@ -22,6 +24,8 @@ int main()
     testRandom();
     testLayer();
     testNetwork();
+    testBackpropagation();
+    testTraining();
 
     if (check::failures > 0)
     {

@@ -43,6 +43,15 @@ void Layer::randomize(Random& random, double range)
         m_biases[j] = random.uniform(-range, range);
 }
 
+double Layer::weightedSum(std::size_t neuron, const std::vector<double>& inputs) const
+{
+    const double* w = &m_weights[neuron * m_inputCount];
+    double sum = m_biases[neuron];
+    for (std::size_t i = 0; i < m_inputCount; i++)
+        sum += w[i] * inputs[i];
+    return sum;
+}
+
 void Layer::compute(const std::vector<double>& inputs, std::vector<double>& outputs) const
 {
     if (inputs.size() != m_inputCount)
@@ -50,12 +59,45 @@ void Layer::compute(const std::vector<double>& inputs, std::vector<double>& outp
 
     outputs.resize(size());
     for (std::size_t j = 0; j < size(); j++)
+        outputs[j] = m_activation.value(weightedSum(j, inputs));
+}
+
+const std::vector<double>& Layer::forward(const std::vector<double>& inputs)
+{
+    if (inputs.size() != m_inputCount)
+        throw std::invalid_argument("wrong number of inputs");
+
+    m_inputs = inputs;
+    m_sums.resize(size());
+    m_outputs.resize(size());
+    for (std::size_t j = 0; j < size(); j++)
     {
-        const double* w = &m_weights[j * m_inputCount];
-        double sum = m_biases[j];
+        m_sums[j] = weightedSum(j, inputs);
+        m_outputs[j] = m_activation.value(m_sums[j]);
+    }
+    return m_outputs;
+}
+
+void Layer::backward(const std::vector<double>& outputGradient, double learningRate,
+                     std::vector<double>& inputGradient)
+{
+    if (m_sums.size() != size())
+        throw std::logic_error("backward() called before forward()");
+    if (outputGradient.size() != size())
+        throw std::invalid_argument("wrong gradient size");
+
+    inputGradient.assign(m_inputCount, 0.0);
+    for (std::size_t j = 0; j < size(); j++)
+    {
+        // Gradient of the error with respect to the weighted sum of neuron j.
+        double delta = outputGradient[j] * m_activation.derivative(m_sums[j]);
+        double* w = &m_weights[j * m_inputCount];
         for (std::size_t i = 0; i < m_inputCount; i++)
-            sum += w[i] * inputs[i];
-        outputs[j] = m_activation.value(sum);
+        {
+            inputGradient[i] += delta * w[i];
+            w[i] -= learningRate * delta * m_inputs[i];
+        }
+        m_biases[j] -= learningRate * delta;
     }
 }
 

@@ -32,11 +32,30 @@ public:
 
     void compute(const std::vector<double>& inputs, std::vector<double>& outputs) const;
 
+    // Same as compute(), but remember the inputs and weighted sums so that
+    // backward() can be called afterwards.
+    const std::vector<double>& forward(const std::vector<double>& inputs);
+
+    // Backpropagation step for the last forward() call. Given the gradient of
+    // the error with respect to the outputs of this layer, compute the
+    // gradient with respect to its inputs (using the weights as they were
+    // during forward()), then move the weights and biases one gradient
+    // descent step of the given learning rate.
+    void backward(const std::vector<double>& outputGradient, double learningRate,
+                  std::vector<double>& inputGradient);
+
 private:
+    double weightedSum(std::size_t neuron, const std::vector<double>& inputs) const;
+
     std::size_t m_inputCount;
     std::vector<double> m_weights; // m_weights[neuron * m_inputCount + input]
     std::vector<double> m_biases;
     Activation m_activation;
+
+    // State of the last forward() call.
+    std::vector<double> m_inputs;
+    std::vector<double> m_sums;
+    std::vector<double> m_outputs;
 };
 
 } // namespace mlp

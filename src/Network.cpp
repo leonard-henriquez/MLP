@@ -1,10 +1,16 @@
 #include "mlp/Network.h"
 
+#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 
 namespace mlp
 {
+
+TrainingOptions::TrainingOptions()
+    : learningRate(0.5), maxEpochs(10000), targetError(0.001), shuffle(true)
+{
+}
 
 Network::Network(std::size_t inputCount, unsigned long seed)
     : m_inputCount(inputCount), m_random(seed)
@@ -39,6 +45,98 @@ std::vector<double> Network::predict(const std::vector<double>& inputs) const
         values.swap(next);
     }
     return values;
+}
+
+double Network::trainExample(const std::vector<double>& inputs,
+                             const std::vector<double>& targets, double learningRate)
+{
+    if (m_layers.empty())
+        throw std::logic_error("the network has no layer");
+    if (targets.size() != outputCount())
+        throw std::invalid_argument("wrong number of targets");
+
+    const std::vector<double>* values = &inputs;
+    for (std::size_t k = 0; k < m_layers.size(); k++)
+        values = &m_layers[k].forward(*values);
+    const std::vector<double>& outputs = *values;
+
+    // E = 1/2 sum_k (output_k - target_k)^2, so dE/doutput_k = output_k - target_k.
+    double squaredError = 0.0;
+    std::vector<double> gradient(outputs.size()), previous;
+    for (std::size_t k = 0; k < outputs.size(); k++)
+    {
+        gradient[k] = outputs[k] - targets[k];
+        squaredError += gradient[k] * gradient[k];
+    }
+
+    for (std::size_t k = m_layers.size(); k-- > 0;)
+    {
+        m_layers[k].backward(gradient, learningRate, previous);
+        gradient.swap(previous);
+    }
+    return squaredError;
+}
+
+TrainingResult Network::train(const Dataset& data, const TrainingOptions& options)
+{
+    checkDataset(data);
+
+    std::vector<std::size_t> order(data.size());
+    for (std::size_t i = 0; i < order.size(); i++)
+        order[i] = i;
+
+    TrainingResult result;
+    result.epochs = 0;
+    result.error = error(data);
+    result.converged = result.error <= options.targetError;
+
+    while (!result.converged && result.epochs < options.maxEpochs)
+    {
+        if (options.shuffle)
+        {
+            // Fisher-Yates shuffle
+            for (std::size_t i = order.size(); i > 1; i--)
+                std::swap(order[i - 1], order[m_random.index(i)]);
+        }
+
+        for (std::size_t i = 0; i < order.size(); i++)
+        {
+            const Example& example = data[order[i]];
+            trainExample(example.inputs, example.targets, options.learningRate);
+        }
+
+        result.epochs++;
+        result.error = error(data);
+        result.converged = result.error <= options.targetError;
+    }
+    return result;
+}
+
+double Network::error(const Dataset& data) const
+{
+    checkDataset(data);
+    if (data.empty())
+        return 0.0;
+
+    double sum = 0.0;
+    for (std::size_t n = 0; n < data.size(); n++)
+    {
+        std::vector<double> outputs = predict(data[n].inputs);
+        for (std::size_t k = 0; k < outputs.size(); k++)
+        {
+            double difference = data[n].targets[k] - outputs[k];
+            sum += difference * difference;
+        }
+    }
+    return sum / (data.size() * outputCount());
+}
+
+void Network::checkDataset(const Dataset& data) const
+{
+    if (m_layers.empty())
+        throw std::logic_error("the network has no layer");
+    if (data.inputCount() != inputCount() || data.outputCount() != outputCount())
+        throw std::invalid_argument("dataset does not match the network");
 }
 
 } // namespace mlp
