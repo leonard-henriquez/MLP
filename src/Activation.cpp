@@ -18,6 +18,10 @@ double Activation::value(double x) const
         return x > 0 ? 1.0 : 0.0;
     case SIGMOID:
         return 1.0 / (1.0 + std::exp(-m_steepness * x));
+    case TANH:
+        return std::tanh(m_steepness * x);
+    case LINEAR:
+        return m_steepness * x;
     }
     return 0.0;
 }
@@ -33,6 +37,13 @@ double Activation::derivative(double x) const
         double s = value(x);
         return m_steepness * s * (1.0 - s);
     }
+    case TANH:
+    {
+        double t = value(x);
+        return m_steepness * (1.0 - t * t);
+    }
+    case LINEAR:
+        return m_steepness;
     }
     return 0.0;
 }

@@ -7,7 +7,9 @@ namespace mlp
 enum ActivationType
 {
     STEP,    // 1 if x > 0, 0 otherwise
-    SIGMOID  // 1 / (1 + exp(-k.x))
+    SIGMOID, // 1 / (1 + exp(-k.x)), between 0 and 1
+    TANH,    // tanh(k.x), between -1 and 1
+    LINEAR   // k.x, for regression outputs
 };
 
 // Activation function of a neuron, applied to the weighted sum of its inputs.

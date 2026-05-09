@@ -141,6 +141,28 @@ void testTraining()
     for (std::size_t i = 0; i < data.size(); i++)
         CHECK_CLOSE(net.predict(data[i].inputs)[0], data[i].targets[0], 0.1);
 
+    // Hidden tanh layer and linear output, on a regression problem:
+    // y = x1 - 2.x2 + 0.5
+    mlp::Dataset linear(2, 1);
+    for (int a = -2; a <= 2; a++)
+    {
+        for (int b = -2; b <= 2; b++)
+        {
+            std::vector<double> inputs(2), target(1);
+            inputs[0] = a / 2.0;
+            inputs[1] = b / 2.0;
+            target[0] = inputs[0] - 2 * inputs[1] + 0.5;
+            linear.add(inputs, target);
+        }
+    }
+    Network regression(2, 3);
+    regression.addLayer(4, Activation(mlp::TANH)).addLayer(1, Activation(mlp::LINEAR));
+    mlp::TrainingOptions regressionOptions;
+    regressionOptions.learningRate = 0.05;
+    regressionOptions.targetError = 1e-4;
+    result = regression.train(linear, regressionOptions);
+    CHECK(result.converged);
+
     // Training stops at maxEpochs when the target cannot be reached.
     Network small(2, 1);
     small.addLayer(1);
