@@ -2,10 +2,62 @@
 
 #include <algorithm>
 #include <cmath>
+#include <fstream>
+#include <limits>
 #include <stdexcept>
 
 namespace mlp
 {
+
+namespace
+{
+
+const char* activationName(ActivationType type)
+{
+    switch (type)
+    {
+    case STEP:
+        return "step";
+    case SIGMOID:
+        return "sigmoid";
+    case TANH:
+        return "tanh";
+    case LINEAR:
+        return "linear";
+    }
+    return "?";
+}
+
+ActivationType activationType(const std::string& name)
+{
+    if (name == "step")
+        return STEP;
+    if (name == "sigmoid")
+        return SIGMOID;
+    if (name == "tanh")
+        return TANH;
+    if (name == "linear")
+        return LINEAR;
+    throw std::runtime_error("unknown activation '" + name + "'");
+}
+
+void expect(std::istream& in, const std::string& keyword)
+{
+    std::string word;
+    if (!(in >> word) || word != keyword)
+        throw std::runtime_error("expected '" + keyword + "' in network file");
+}
+
+template <typename T>
+T read(std::istream& in)
+{
+    T value;
+    if (!(in >> value))
+        throw std::runtime_error("unexpected value in network file");
+    return value;
+}
+
+} // namespace
 
 TrainingOptions::TrainingOptions()
     : learningRate(0.5), maxEpochs(10000), targetError(0.001), shuffle(true)
@@ -137,6 +189,82 @@ void Network::checkDataset(const Dataset& data) const
         throw std::logic_error("the network has no layer");
     if (data.inputCount() != inputCount() || data.outputCount() != outputCount())
         throw std::invalid_argument("dataset does not match the network");
+}
+
+void Network::save(std::ostream& out) const
+{
+    std::streamsize precision = out.precision(std::numeric_limits<double>::digits10 + 2);
+
+    out << "mlp 1\n";
+    out << "inputs " << m_inputCount << '\n';
+    out << "layers " << m_layers.size() << '\n';
+    for (std::size_t k = 0; k < m_layers.size(); k++)
+    {
+        const Layer& layer = m_layers[k];
+        out << "layer " << layer.size() << ' ' << activationName(layer.activation().type()) << ' '
+            << layer.activation().steepness() << '\n';
+        // One line per neuron: its weights, then its bias.
+        for (std::size_t j = 0; j < layer.size(); j++)
+        {
+            for (std::size_t i = 0; i < layer.inputCount(); i++)
+                out << layer.weight(j, i) << ' ';
+            out << layer.bias(j) << '\n';
+        }
+    }
+    out.precision(precision);
+}
+
+void Network::save(const std::string& path) const
+{
+    std::ofstream file(path.c_str());
+    if (!file)
+        throw std::runtime_error("cannot write network file '" + path + "'");
+    save(file);
+    if (!file)
+        throw std::runtime_error("error while writing network file '" + path + "'");
+}
+
+Network Network::load(std::istream& in)
+{
+    expect(in, "mlp");
+    if (read<int>(in) != 1)
+        throw std::runtime_error("unsupported network file version");
+
+    expect(in, "inputs");
+    long inputCount = read<long>(in);
+    expect(in, "layers");
+    long layerCount = read<long>(in);
+    if (inputCount <= 0 || layerCount < 0)
+        throw std::runtime_error("invalid network dimensions");
+
+    Network net(static_cast<std::size_t>(inputCount));
+    for (long k = 0; k < layerCount; k++)
+    {
+        expect(in, "layer");
+        long size = read<long>(in);
+        if (size <= 0)
+            throw std::runtime_error("invalid layer size");
+        ActivationType type = activationType(read<std::string>(in));
+        double steepness = read<double>(in);
+
+        net.addLayer(static_cast<std::size_t>(size), Activation(type, steepness));
+        Layer& layer = net.m_layers.back();
+        for (std::size_t j = 0; j < layer.size(); j++)
+        {
+            for (std::size_t i = 0; i < layer.inputCount(); i++)
+                layer.setWeight(j, i, read<double>(in));
+            layer.setBias(j, read<double>(in));
+        }
+    }
+    return net;
+}
+
+Network Network::load(const std::string& path)
+{
+    std::ifstream file(path.c_str());
+    if (!file)
+        throw std::runtime_error("cannot open network file '" + path + "'");
+    return load(file);
 }
 
 } // namespace mlp

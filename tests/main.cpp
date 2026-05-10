@@ -15,6 +15,7 @@ void testLayer();
 void testNetwork();
 void testBackpropagation();
 void testTraining();
+void testSaveLoad();
 
 int main()
 {
@@ -26,6 +27,7 @@ int main()
     testNetwork();
     testBackpropagation();
     testTraining();
+    testSaveLoad();
 
     if (check::failures > 0)
     {

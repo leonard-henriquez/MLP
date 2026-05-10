@@ -2,6 +2,9 @@
 #define MLP_NETWORK_H
 
 #include <cstddef>
+#include <istream>
+#include <ostream>
+#include <string>
 #include <vector>
 
 #include "mlp/Activation.h"
@@ -65,6 +68,13 @@ public:
 
     // Mean over the examples and outputs of (target - output)^2.
     double error(const Dataset& data) const;
+
+    // Save the topology, activations and weights in a text format, and read
+    // them back. load() throws std::runtime_error on malformed input.
+    void save(std::ostream& out) const;
+    void save(const std::string& path) const;
+    static Network load(std::istream& in);
+    static Network load(const std::string& path);
 
 private:
     void checkDataset(const Dataset& data) const;

@@ -1,3 +1,4 @@
+#include <sstream>
 #include <vector>
 
 #include "check.h"
@@ -171,4 +172,38 @@ void testTraining()
     result = small.train(data, options);
     CHECK(!result.converged);
     CHECK(result.epochs == 50);
+}
+
+void testSaveLoad()
+{
+    Network net(3, 9);
+    net.addLayer(4, Activation(mlp::TANH, 0.5)).addLayer(2, Activation(mlp::SIGMOID));
+
+    std::stringstream file;
+    net.save(file);
+    Network loaded = Network::load(file);
+
+    CHECK(loaded.inputCount() == 3);
+    CHECK(loaded.layerCount() == 2);
+    CHECK(loaded.layer(0).activation().type() == mlp::TANH);
+    CHECK(loaded.layer(0).activation().steepness() == 0.5);
+    CHECK(loaded.layer(1).activation().type() == mlp::SIGMOID);
+    for (std::size_t k = 0; k < net.layerCount(); k++)
+    {
+        for (std::size_t j = 0; j < net.layer(k).size(); j++)
+        {
+            // Saved with enough digits to read back the exact same values.
+            CHECK(loaded.layer(k).bias(j) == net.layer(k).bias(j));
+            for (std::size_t i = 0; i < net.layer(k).inputCount(); i++)
+                CHECK(loaded.layer(k).weight(j, i) == net.layer(k).weight(j, i));
+        }
+    }
+
+    std::istringstream truncated("mlp 1\ninputs 2\nlayers 1\nlayer 1 sigmoid 1\n0.5 0.5\n");
+    CHECK_THROWS(Network::load(truncated));
+    std::istringstream unknown("mlp 1\ninputs 1\nlayers 1\nlayer 1 relu 1\n0.5 0.5\n");
+    CHECK_THROWS(Network::load(unknown));
+    std::istringstream version("mlp 2\n");
+    CHECK_THROWS(Network::load(version));
+    CHECK_THROWS(Network::load("does/not/exist.mlp"));
 }
