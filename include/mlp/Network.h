@@ -55,6 +55,8 @@ public:
     const Layer& layer(std::size_t i) const { return m_layers.at(i); }
 
     std::vector<double> predict(const std::vector<double>& inputs) const;
+    // Index of the strongest output, for classification problems.
+    std::size_t classify(const std::vector<double>& inputs) const;
 
     // One step of stochastic gradient descent on the squared error of a
     // single example, using backpropagation. Return the squared error

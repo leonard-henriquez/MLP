@@ -58,6 +58,16 @@ void testNetwork()
     CHECK(run(xorNet, 1, 1) == 0.0);
     CHECK_THROWS(xorNet.predict(std::vector<double>(3)));
 
+    // classify() returns the index of the strongest output.
+    Network classifier(1);
+    classifier.addLayer(3, Activation(mlp::LINEAR));
+    for (std::size_t j = 0; j < 3; j++)
+    {
+        classifier.layer(0).setWeight(j, 0, 0.0);
+        classifier.layer(0).setBias(j, j == 1 ? 2.0 : -1.0);
+    }
+    CHECK(classifier.classify(std::vector<double>(1, 0.0)) == 1);
+
     // Same seed, same initial weights.
     Network a(3, 5), b(3, 5);
     a.addLayer(4).addLayer(2);

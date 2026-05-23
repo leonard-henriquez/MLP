@@ -16,6 +16,7 @@ void testNetwork();
 void testBackpropagation();
 void testTraining();
 void testSaveLoad();
+void testMnist();
 
 int main()
 {
@@ -28,6 +29,7 @@ int main()
     testBackpropagation();
     testTraining();
     testSaveLoad();
+    testMnist();
 
     if (check::failures > 0)
     {

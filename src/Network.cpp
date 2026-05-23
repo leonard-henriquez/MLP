@@ -99,6 +99,12 @@ std::vector<double> Network::predict(const std::vector<double>& inputs) const
     return values;
 }
 
+std::size_t Network::classify(const std::vector<double>& inputs) const
+{
+    std::vector<double> outputs = predict(inputs);
+    return static_cast<std::size_t>(std::max_element(outputs.begin(), outputs.end()) - outputs.begin());
+}
+
 double Network::trainExample(const std::vector<double>& inputs,
                              const std::vector<double>& targets, double learningRate)
 {
