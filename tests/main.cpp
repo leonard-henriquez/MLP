@@ -17,6 +17,7 @@ void testBackpropagation();
 void testTraining();
 void testSaveLoad();
 void testMnist();
+void testImage();
 
 int main()
 {
@@ -30,6 +31,7 @@ int main()
     testTraining();
     testSaveLoad();
     testMnist();
+    testImage();
 
     if (check::failures > 0)
     {
