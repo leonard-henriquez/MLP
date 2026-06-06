@@ -5,7 +5,8 @@ CPPFLAGS += -Iinclude
 BUILD := bin
 LIB   := $(BUILD)/libmlp.a
 OBJS  := $(patsubst src/%.cpp,$(BUILD)/%.o,$(wildcard src/*.cpp))
-BINS  := $(patsubst examples/%.cpp,$(BUILD)/%,$(wildcard examples/*.cpp))
+BINS  := $(patsubst examples/%.cpp,$(BUILD)/%,$(wildcard examples/*.cpp)) $(BUILD)/tui
+TUI   := $(wildcard examples/tui/*.cpp)
 TESTS := $(patsubst tests/%.cpp,$(BUILD)/tests/%.o,$(wildcard tests/*.cpp))
 
 .PHONY: all examples test clean
@@ -29,6 +30,9 @@ $(BUILD)/tests/%.o: tests/%.cpp tests/check.h | $(BUILD)
 
 $(BUILD)/%: examples/%.cpp $(LIB)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $< $(LIB) -o $@
+
+$(BUILD)/tui: $(TUI) $(wildcard examples/tui/*.h) $(LIB)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(TUI) $(LIB) -o $@
 
 $(BUILD)/%.o: src/%.cpp | $(BUILD)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
