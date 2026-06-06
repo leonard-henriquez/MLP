@@ -64,6 +64,7 @@ private:
 
 // The views, in their own files.
 View* createMenu();
+View* createGates();
 View* createMessage(const std::string& title, const std::vector<std::string>& lines);
 
 } // namespace tui

@@ -30,6 +30,7 @@ class MenuView : public View
 public:
     MenuView() : m_selected(0)
     {
+        add("Logic gates", "perceptron vs 2-3-1 network on AND, OR, NOR, XOR", createGates);
     }
 
     void draw(Canvas& canvas)
@@ -102,6 +103,15 @@ public:
     }
 
 private:
+    void add(const std::string& title, const std::string& description, View* (*create)())
+    {
+        Item item;
+        item.title = title;
+        item.description = description;
+        item.create = create;
+        m_items.push_back(item);
+    }
+
     void open(App& app, std::size_t i)
     {
         if (i == m_items.size())
