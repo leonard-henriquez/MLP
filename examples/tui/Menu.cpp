@@ -18,11 +18,21 @@ const char* const BANNER[] = {
 };
 const int BANNER_HEIGHT = 3;
 
+View* openGates(App&)
+{
+    return createGates();
+}
+
+View* openTraining(App& app)
+{
+    return createMnistTraining(app.session());
+}
+
 struct Item
 {
     std::string title;
     std::string description;
-    View* (*create)();
+    View* (*create)(App& app);
 };
 
 class MenuView : public View
@@ -30,7 +40,8 @@ class MenuView : public View
 public:
     MenuView() : m_selected(0)
     {
-        add("Logic gates", "perceptron vs 2-3-1 network on AND, OR, NOR, XOR", createGates);
+        add("Logic gates", "perceptron vs 2-3-1 network on AND, OR, NOR, XOR", openGates);
+        add("MNIST training", "train a digit recogniser live on 60000 images", openTraining);
     }
 
     void draw(Canvas& canvas)
@@ -103,7 +114,7 @@ public:
     }
 
 private:
-    void add(const std::string& title, const std::string& description, View* (*create)())
+    void add(const std::string& title, const std::string& description, View* (*create)(App&))
     {
         Item item;
         item.title = title;
@@ -117,7 +128,7 @@ private:
         if (i == m_items.size())
             app.quit();
         else if (i < m_items.size())
-            app.push(m_items[i].create());
+            app.push(m_items[i].create(app));
     }
 
     std::vector<Item> m_items;

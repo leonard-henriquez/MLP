@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "Canvas.h"
+#include "Session.h"
 #include "Terminal.h"
 
 namespace tui
@@ -42,6 +43,8 @@ public:
     void pop();
     void quit();
 
+    Session& session() { return m_session; }
+
     // Draw and handle keys until quit() or a signal.
     void run();
 
@@ -54,6 +57,7 @@ private:
     void deleteClosed();
 
     Terminal& m_terminal;
+    Session m_session;
     std::vector<View*> m_views;
     std::vector<View*> m_closed; // deleted once their key() call returned
     Canvas m_canvas;
@@ -65,6 +69,7 @@ private:
 // The views, in their own files.
 View* createMenu();
 View* createGates();
+View* createMnistTraining(Session& session);
 View* createMessage(const std::string& title, const std::vector<std::string>& lines);
 
 } // namespace tui

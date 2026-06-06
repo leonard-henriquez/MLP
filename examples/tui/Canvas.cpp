@@ -250,24 +250,23 @@ void chart(Canvas& canvas, int x, int y, int width, int height, const std::vecto
 {
     if (values.empty() || width <= 0 || height <= 0 || high <= low)
         return;
+    // Few values are stretched over several columns, many are averaged.
     std::size_t n = values.size();
     int count = std::min(width, static_cast<int>(n));
+    int stretch = width / count;
     for (int column = 0; column < count; column++)
     {
-        // Mean of the values falling in this column.
         std::size_t first = n * column / count, last = n * (column + 1) / count;
         double sum = 0.0;
         for (std::size_t i = first; i < last; i++)
             sum += values[i];
-        double value = sum / (last - first);
-
-        double fraction = clamp((value - low) / (high - low), 0.0, 1.0);
+        double fraction = clamp((sum / (last - first) - low) / (high - low), 0.0, 1.0);
         int eighths = static_cast<int>(fraction * height * 8 + 0.5);
         for (int row = 0; row < height; row++)
         {
-            int level = eighths - row * 8;
-            if (level > 0)
-                canvas.put(x + column, y + height - 1 - row, EIGHTHS_UP[std::min(level, 8) - 1],
+            int level = std::min(eighths - row * 8, 8);
+            for (int k = 0; k < stretch && level > 0; k++)
+                canvas.put(x + column * stretch + k, y + height - 1 - row, EIGHTHS_UP[level - 1],
                            Style(colour));
         }
     }
