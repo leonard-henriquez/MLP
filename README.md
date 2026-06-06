@@ -18,6 +18,18 @@ with backpropagation that reads handwritten digits.
 - **No dependencies**: plain C++98, a Makefile and a C++ compiler are all it
   needs.
 
+## History
+
+This repository holds three generations of the same project. The older ones
+are kept in the history and can be browsed from their tags. The logic gate
+truth tables in `data/` date from 2012 and are still read by this version.
+
+| Version | What it was |
+|---------|-------------|
+| **2012**: [`2012-prototypes`](../../tree/2012-prototypes) | First experiments, as Code::Blocks projects written in French: a single neuron learning logic gates with the perceptron rule, then neurons linked together and the start of a Qt interface. |
+| **2015**: [`2015-jalgos`](../../tree/2015-jalgos) | Written during an internship at Jalgos: a Qt interface (`master` at the time), then a console program that learns MNIST, built on Eigen and Intel MKL, with multithreading, a batch mode, a validation set and an adaptive learning rate. The branches `batch`, `console`, `benchmarkIterVSRecur` and `experimental` come from that period. |
+| **2026**: `master` | This version: rewritten from scratch with no external library, unit tests, and an end to end MNIST demo, from training to recognising digits in images. |
+
 ## Contents
 
 1. [Build and run the tests](#1-build-and-run-the-tests)
@@ -132,15 +144,15 @@ The training error goes down every epoch, and the accuracy on the test images
 The network is saved to `data/mnist/mnist.mlp` after every epoch, so you can stop
 training at any time with Ctrl-C.
 
-| Option          | Default      | Meaning                                       |
-|-----------------|--------------|-----------------------------------------------|
-| `--data DIR`    | `data/mnist` | directory of the MNIST files                  |
-| `--hidden N`    | `100`        | neurons in the hidden layer                   |
-| `--epochs N`    | `10`         | passes over the training images               |
-| `--rate R`      | `0.1`        | learning rate                                 |
-| `--limit N`     | all          | only train on the first N images (quick runs) |
-| `--seed N`      | `1`          | seed of the initial weights and the shuffling |
-| `--output FILE` | `data/mnist/mnist.mlp`  | where to save the trained network             |
+| Option          | Default                | Meaning                                       |
+|-----------------|------------------------|-----------------------------------------------|
+| `--data DIR`    | `data/mnist`           | directory of the MNIST files                  |
+| `--hidden N`    | `100`                  | neurons in the hidden layer                   |
+| `--epochs N`    | `10`                   | passes over the training images               |
+| `--rate R`      | `0.1`                  | learning rate                                 |
+| `--limit N`     | all                    | only train on the first N images (quick runs) |
+| `--seed N`      | `1`                    | seed of the initial weights and the shuffling |
+| `--output FILE` | `data/mnist/mnist.mlp` | where to save the trained network             |
 
 Each epoch goes through the 60000 images, which takes a while. For a quick
 check that everything works, `bin/mnist_train --limit 5000 --epochs 3` only
@@ -188,7 +200,7 @@ three best scores. Try:
   `bin/recognize data/mnist/mnist.mlp data/mnist/samples/*.pgm`.
 - **Your own handwriting**: draw a digit (paint program, or a photo of
   paper), crop it around the digit and convert it to PGM, for example with
-  ImageMagick: `convert my-digit.png my-digit.pgm`. Then run
+  ImageMagick: `magick my-digit.png my-digit.pgm`. Then run
   `bin/recognize data/mnist/mnist.mlp my-digit.pgm`. Thick strokes work best.
 
 Images can be of any size and either white on black or black on white. Before
@@ -265,10 +277,11 @@ in `[-1/sqrt(n), 1/sqrt(n)]`, where `n` is the number of inputs of the layer.
 ## Layout
 
 ```
-include/mlp/   public headers
-src/           library sources
-examples/      perceptron, mlp, mnist_train, mnist_export, recognize
-tests/         unit tests (make test)
-scripts/       download_mnist.sh
-data/          logic gate datasets
+include/mlp/    public headers
+src/            library sources
+examples/       perceptron, mlp, mnist_train, mnist_export, recognize
+examples/data/  XOR dataset, sample digit drawings
+tests/          unit tests (make test)
+scripts/        download_mnist.sh
+data/           logic gate datasets (2012), MNIST once downloaded
 ```
