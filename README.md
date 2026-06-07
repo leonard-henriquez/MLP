@@ -15,6 +15,7 @@ with backpropagation that reads handwritten digits.
 - **Digit recognition** in PGM images of any size, white on black or black on
   white.
 - **Trained networks** can be saved to text files and loaded again.
+- **Interactive demo** in the terminal: watch the networks learn, in colour.
 - **No dependencies**: plain C++98, a Makefile and a C++ compiler are all it
   needs.
 
@@ -33,11 +34,12 @@ truth tables in `data/` date from 2012 and are still read by this version.
 ## Contents
 
 1. [Build and run the tests](#1-build-and-run-the-tests)
-2. [Perceptron vs multilayer network on logic gates](#2-perceptron-vs-multilayer-network-on-logic-gates)
-3. [Train on MNIST](#3-train-on-mnist)
-4. [Recognise digits in images](#4-recognise-digits-in-images)
-5. [Using the library](#using-the-library)
-6. [How it works](#how-it-works)
+2. [Try the interactive demo](#2-try-the-interactive-demo)
+3. [Perceptron vs multilayer network on logic gates](#3-perceptron-vs-multilayer-network-on-logic-gates)
+4. [Train on MNIST](#4-train-on-mnist)
+5. [Recognise digits in images](#5-recognise-digits-in-images)
+6. [Using the library](#using-the-library)
+7. [How it works](#how-it-works)
 
 ## 1. Build and run the tests
 
@@ -50,7 +52,61 @@ make test   # runs the unit tests
 
 `make test` should end with `All tests passed`.
 
-## 2. Perceptron vs multilayer network on logic gates
+## 2. Try the interactive demo
+
+`bin/tui` shows the library at work, full screen in the terminal. It needs
+nothing more than the rest of the project, not even a curses library: the
+screen is drawn with ANSI escape sequences and Unicode block characters.
+
+```sh
+make && bin/tui
+```
+
+The logic gates demo once XOR is learned, in colour on the screen (here ░ is
+an output near 0 and ▓ near 1):
+
+```text
+ MLP  Logic gates: perceptron vs multilayer network
+ Gate  AND   OR   NOR   XOR   1 when the inputs differ (not linearly separable)
+ Output  ░░ 0   ▒▒ 0.5   ▓▓ 1    ● should be 1   ○ should be 0
+╭─ Single perceptron ──────────────────╮╭─ Multilayer network 2-3-1 ───────────╮
+│ step activation, perceptron rule     ││ sigmoid, backpropagation, rate 0.5   │
+│ Epoch 1000  ✗ gave up after 1000     ││ Epoch 4049  ✓ learned                │
+│                                      ││                                      │
+│ 1 ●▓▓▓▓▓▓▓▓▓▓▓▓○     x1 x2 → out     ││ 1 ●▓▓▓▓▓▒▒░░░░░○     x1 x2 → out     │
+│   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ○  1  1 → 1 ✗     ││   ▓▓▓▓▓▓▓▓▒▒░░░░   ○  1  1 → 0.04 ✓  │
+│   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ●  0  1 → 1 ✓     ││   ▓▓▓▓▓▓▓▓▓▓▒▒░░   ●  0  1 → 0.96 ✓  │
+│ x2▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ●  1  0 → 1 ✓     ││ x2▓▓▓▓▓▓▓▓▓▓▓▒▒▒   ●  1  0 → 0.98 ✓  │
+│   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ○  0  0 → 0 ✓     ││   ▒▒▓▓▓▓▓▓▓▓▓▓▓▒   ○  0  0 → 0.03 ✓  │
+│   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓                     ││   ░░▒▓▓▓▓▓▓▓▓▓▓▓                     │
+│ 0 ○▓▓▓▓▓▓▓▓▓▓▓▓●                     ││ 0 ○░░░▒▓▓▓▓▓▓▓▓●                     │
+│   0     x1     1   not separable     ││   0     x1     1                     │
+│                                      ││                                      │
+│ Error 0.2500                max 0.75 ││ Error 0.0010                max 0.29 │
+│                                      ││ ▅▅▄▄▃▁                               │
+│ ▁                                    ││ ██████▇▅▁                            │
+│ ████████████████████████████████████ ││ █████████▅▃▁▁▁▁                      │
+│ epoch 0                         1000 ││ epoch 0                         4049 │
+╰──────────────────────────────────────╯╰──────────────────────────────────────╯
+ ←→ gate   space pause   r restart   esc back   q quit
+```
+
+| Demo               | What it shows |
+|--------------------|---------------|
+| **Logic gates**    | A perceptron and a 2-3-1 network learn AND, OR, NOR or XOR side by side, with their error curves and a map of their output over the input square. On XOR the map of the perceptron stays cut by a straight line and it gives up, while the map of the network bends around the examples. |
+| **MNIST training** | A new network learns MNIST live: progress through the epoch, the image being learned and the outputs of the network for it, the training error and the test accuracy. Choose the size of the hidden layer, the learning rate, the epochs and the number of images first, and save the result to `data/mnist/mnist.mlp`. |
+| **MNIST test**     | Browse the 10000 test digits and the drawings of `examples/data/digits` to see what the network answers, right or wrong, and its accuracy over the images viewed. |
+
+The MNIST demos need the images: run `scripts/download_mnist.sh` first (see
+[step 4](#4-train-on-mnist)). The test demo uses the network just trained in
+the demo, or else the one saved in `data/mnist/mnist.mlp`.
+
+The keys are listed at the bottom of each screen: arrows and Enter to choose,
+Space to pause, `r` to restart (logic gates) or to pick a random image (test),
+`m` to jump to the next mistake, Esc to go back and `q` to quit. Run it from
+the root of the repository, in a terminal of at least 80x24.
+
+## 3. Perceptron vs multilayer network on logic gates
 
 A single perceptron learns any linearly separable function:
 
@@ -99,7 +155,7 @@ Learned in 4050 epochs
 Usage: `bin/mlp <data-file> [hidden-neurons] [learning-rate] [max-epochs]`.
 The format of the data files is described [below](#data-format).
 
-## 3. Train on MNIST
+## 4. Train on MNIST
 
 [MNIST](http://yann.lecun.com/exdb/mnist/) has 60000 training and 10000 test
 images of handwritten digits, 28x28 pixels each. Download it (about 11 MB)
@@ -158,7 +214,7 @@ Each epoch goes through the 60000 images, which takes a while. For a quick
 check that everything works, `bin/mnist_train --limit 5000 --epochs 3` only
 trains on 5000 images and still reaches about 90%.
 
-## 4. Recognise digits in images
+## 5. Recognise digits in images
 
 `bin/recognize` loads a trained network and classifies images:
 
@@ -280,6 +336,7 @@ in `[-1/sqrt(n), 1/sqrt(n)]`, where `n` is the number of inputs of the layer.
 include/mlp/    public headers
 src/            library sources
 examples/       perceptron, mlp, mnist_train, mnist_export, recognize
+examples/tui/   interactive terminal demo (bin/tui)
 examples/data/  XOR dataset, sample digit drawings
 tests/          unit tests (make test)
 scripts/        download_mnist.sh
