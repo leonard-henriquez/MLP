@@ -100,6 +100,7 @@ public:
         }
         else
         {
+            drawLegend(canvas);
             int width = canvas.width() / 2, height = canvas.height() - 5;
             std::string hidden = number(static_cast<long>(HIDDEN));
             std::string inputs = number(static_cast<long>(m_data.inputCount()));
@@ -246,9 +247,12 @@ private:
         canvas.text(x + 1, 2, GATES[m_gate].rule, Style(DIM));
         if (m_paused)
             canvas.text(canvas.width() - 9, 0, " PAUSED ", Style(BLACK, YELLOW, true));
+    }
 
-        // Legend of the maps.
-        x = 1 + canvas.text(1, 3, "Output", Style(DIM)) + 2;
+    // Colours of the maps, and markers of the training examples.
+    void drawLegend(Canvas& canvas)
+    {
+        int x = 1 + canvas.text(1, 3, "Output", Style(DIM)) + 2;
         const char* levels[] = {"0", "0.5", "1"};
         for (int i = 0; i < 3; i++)
         {
@@ -306,10 +310,12 @@ private:
         int tableX = mapX + size + 3, tableY = mapY;
         std::string inputs = m_data.inputCount() > 2 ? "x1 x2 x3" : "x1 x2";
         canvas.text(tableX, tableY, "  " + inputs + " → out", Style(DIM));
+        int tableWidth = left + inner - tableX;
         if (m_data.inputCount() > 2)
-            canvas.text(tableX, mapY + size / 2, "x3 = " + number(m_slice) + " (z)", Style(DIM));
+            canvas.text(tableX, mapY + size / 2, "x3 = " + number(m_slice) + " (z)", Style(DIM),
+                        tableWidth);
         else if (run.done && !run.learned)
-            canvas.text(tableX, mapY + size / 2, "no line splits them", Style(RED));
+            canvas.text(tableX, mapY + size / 2, "not separable", Style(RED), tableWidth);
         for (std::size_t i = 0; i < m_data.size(); i++)
         {
             const mlp::Example& example = m_data[i];
@@ -329,7 +335,7 @@ private:
                 line += " " + number(static_cast<long>(example.inputs[k])) + " ";
             line += "→ " + (perceptron ? number(static_cast<long>(value)) : fixed(value, 2));
             tableY++;
-            int used = canvas.text(tableX, tableY, line);
+            int used = canvas.text(tableX, tableY, line, Style(), tableWidth - 2);
             bool correct = (value > 0.5) == wantsOne;
             canvas.text(tableX + used + 1, tableY, correct ? "✓" : "✗",
                         Style(correct ? GREEN : RED, DEFAULT, true));
