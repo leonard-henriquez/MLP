@@ -70,6 +70,7 @@ private:
 View* createMenu();
 View* createGates();
 View* createMnistTraining(Session& session);
+View* createMnistTest(Session& session);
 View* createMessage(const std::string& title, const std::vector<std::string>& lines);
 
 } // namespace tui

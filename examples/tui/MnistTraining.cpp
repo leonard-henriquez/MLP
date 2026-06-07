@@ -152,7 +152,7 @@ public:
                 footer.key("space", m_paused ? "resume" : "pause").key("x", "stop");
             else
                 footer.key("n", "new network");
-            footer.key("s", "save");
+            footer.key("s", "save").key("t", "test it");
         }
         footer.key("esc", "back").key("q", "quit");
 
@@ -215,6 +215,8 @@ public:
                 m_state = SETUP;
             else if (key == 's')
                 save();
+            else if (key == 't')
+                test(app);
         }
     }
 
@@ -362,10 +364,21 @@ private:
     {
         m_state = DONE;
         m_evaluation.active = false;
-        std::string origin = "trained in the demo, " + topology();
+        std::string origin = "trained in the demo";
         if (!m_accuracies.empty())
             origin += ", " + percent(m_accuracies.back()) + " on the test images";
         m_session.setNetwork(m_network, origin);
+    }
+
+    // Try the network in the test view, as it is now.
+    void test(App& app)
+    {
+        if (m_state == TRAINING)
+        {
+            m_paused = true;
+            m_session.setNetwork(m_network, "being trained in the demo");
+        }
+        app.push(createMnistTest(m_session));
     }
 
     void save()

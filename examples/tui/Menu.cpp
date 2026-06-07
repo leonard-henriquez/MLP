@@ -28,6 +28,11 @@ View* openTraining(App& app)
     return createMnistTraining(app.session());
 }
 
+View* openTest(App& app)
+{
+    return createMnistTest(app.session());
+}
+
 struct Item
 {
     std::string title;
@@ -42,6 +47,7 @@ public:
     {
         add("Logic gates", "perceptron vs 2-3-1 network on AND, OR, NOR, XOR", openGates);
         add("MNIST training", "train a digit recogniser live on 60000 images", openTraining);
+        add("MNIST test", "see the network read test digits and drawings", openTest);
     }
 
     void draw(Canvas& canvas)
